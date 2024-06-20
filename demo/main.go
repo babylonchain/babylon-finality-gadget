@@ -9,7 +9,7 @@ import (
 func checkBlockFinalized(height uint64, hash string) {
 	client, err := sdk.NewClient(sdk.Config{
 		ChainType:    0,
-		ContractAddr: "bbn1nc5tatafv6eyq7llkr2gv50ff9e22mnf70qgjlv737ktmt4eswrqztltxv",
+		ContractAddr: "bbn17p9rzwnnfxcjp32un9ug7yhhzgtkhvl9jfksztgw5uh69wac2pgs6spw0g",
 	})
 
 	if err != nil {

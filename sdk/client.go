@@ -24,13 +24,13 @@ type Config struct {
 	ContractAddr string `mapstructure:"contract-addr"`
 }
 
-// TODO: replace with babylon RPCs when QuerySmartContractStateRequest query is supported
 func (config Config) getRpcAddr() (string, error) {
 	switch config.ChainType {
 	case BabylonTestnet:
 		return "https://rpc-euphrates.devnet.babylonchain.io/", nil
+	// TODO: replace with babylon RPCs when QuerySmartContractStateRequest query is supported
 	case BabylonMainnet:
-		return "https://rpc.testnet.osmosis.zone:443", nil
+		return "https://rpc-euphrates.devnet.babylonchain.io/", nil
 	default:
 		return "", fmt.Errorf("unrecognized chain type: %d", config.ChainType)
 	}
