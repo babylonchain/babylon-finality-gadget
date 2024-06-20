@@ -87,7 +87,7 @@ func (babylonClient *babylonQueryClient) queryFinalityProviders(consumerId strin
 	return resp.FinalityProviders, nil
 }
 
-func (babylonClient *babylonQueryClient) queryConsumerChainId() (string, error) {
+func (babylonClient *babylonQueryClient) queryConsumerId() (string, error) {
 	queryData, err := createConfigQueryData()
 	if err != nil {
 		return "", err
@@ -112,12 +112,12 @@ func (babylonClient *babylonQueryClient) QueryIsBlockBabylonFinalized(queryParam
 		return false, err
 	}
 
-	consumerChainId, err := babylonClient.queryConsumerChainId()
+	consumerId, err := babylonClient.queryConsumerId()
 	if err != nil {
 		return false, err
 	}
 
-	_, err = babylonClient.queryFinalityProviders(consumerChainId)
+	_, err = babylonClient.queryFinalityProviders(consumerId)
 	if err != nil {
 		return false, err
 	}

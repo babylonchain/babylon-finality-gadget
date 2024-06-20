@@ -18,9 +18,9 @@ func newE2eClientWithStubContract() *babylonQueryClient {
 	return client
 }
 
-func TestQueryConsumerChainId(t *testing.T) {
+func TestQueryConsumerId(t *testing.T) {
 	client := newE2eClientWithStubContract()
-	chainId, err := client.queryConsumerChainId()
+	chainId, err := client.queryConsumerId()
 	require.Nil(t, err)
 	require.Equal(t, "op-stack-l2-12345", chainId)
 }
