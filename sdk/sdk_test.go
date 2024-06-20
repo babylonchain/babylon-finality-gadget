@@ -8,7 +8,7 @@ import (
 )
 
 /*
- * The e2e tests here uses:
+ * The e2e tests here use:
  *
  * stub contract code: https://gist.github.com/bap2pecs/9541adb2ba61e7abb481bf03f863435d
  * example stub instance: https://www.seiscan.app/atlantic-2/query?contract=sei18fs8atjcxrsypskpk725q2vr8j76q3xwcfle3w2qlna48acmed0sp30xm8
