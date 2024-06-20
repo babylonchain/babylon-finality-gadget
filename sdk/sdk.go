@@ -34,6 +34,17 @@ type blockVotesResponse struct {
 	BtcPkHexList []string `json:"fp_pubkey_hex_list"`
 }
 
+func createConfigQueryData() ([]byte, error) {
+	queryData := ContractQueryMsgs{
+		Config: &contractConfig{},
+	}
+	data, err := json.Marshal(queryData)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
 func createBlockVotesQueryData(queryParams QueryParams) ([]byte, error) {
 	queryData := ContractQueryMsgs{
 		BlockVotes: &blockVotes{
@@ -76,15 +87,37 @@ func (babylonClient *babylonQueryClient) queryFinalityProviders(consumerId strin
 	return resp.FinalityProviders, nil
 }
 
+func (babylonClient *babylonQueryClient) queryConsumerChainId() (string, error) {
+	queryData, err := createConfigQueryData()
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := babylonClient.querySmartContractState(babylonClient.config.ContractAddr, queryData)
+	if err != nil {
+		return "", err
+	}
+
+	var data contractConfigResponse
+	if err := json.Unmarshal(resp.Data, &data); err != nil {
+		return "", err
+	}
+
+	return data.ConsumerId, nil
+}
+
 func (babylonClient *babylonQueryClient) QueryIsBlockBabylonFinalized(queryParams QueryParams) (bool, error) {
 	votedFps, err := babylonClient.queryListOfVotedFinalityProviders(queryParams)
 	if err != nil {
 		return false, err
 	}
 
-	// TODO: change w real implementation
-	var consumerId = ""
-	_, err = babylonClient.queryFinalityProviders(consumerId)
+	consumerChainId, err := babylonClient.queryConsumerChainId()
+	if err != nil {
+		return false, err
+	}
+
+	_, err = babylonClient.queryFinalityProviders(consumerChainId)
 	if err != nil {
 		return false, err
 	}
