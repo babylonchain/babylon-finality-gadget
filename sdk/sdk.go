@@ -170,6 +170,7 @@ func (babylonClient *babylonQueryClient) QueryIsBlockBabylonFinalized(queryParam
 	}
 
 	quorum := float64(votedPower) / float64(totalPower)
+	// TODO: the quorom is hardcode for now. later we can consider make it a config param
 	if quorum < 0.667 {
 		return false, errors.New("not enough voting power")
 	}
