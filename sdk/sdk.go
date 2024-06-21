@@ -17,7 +17,7 @@ type QueryParams struct {
 type ContractQueryMsgs struct {
 	Config     *contractConfig `json:"config,omitempty"`
 	BlockVotes *blockVotes     `json:"block_votes,omitempty"`
-	IsDisabled *isDisabledQuery `json:"is_disabled,omitempty"`
+	IsEnabled *killswitchQuery `json:"is_enabled,omitempty"`
 }
 
 type contractConfig struct{}
@@ -36,10 +36,10 @@ type blockVotesResponse struct {
 	BtcPkHexList []string `json:"fp_pubkey_hex_list"`
 }
 
-type isDisabledQuery struct {}
+type killswitchQuery struct {}
 
-type isDisabledResponse struct {
-	IsDisabled bool `json:"is_disabled"`
+type killswitchResponse struct {
+	IsEnabled bool `json:"is_enabled"`
 }
 
 func createConfigQueryData() ([]byte, error) {
@@ -131,13 +131,13 @@ func queryMultiFpPowerAtHeight(fps []string, btcHeight uint64) (map[string]uint6
 }
 
 func (babylonClient *babylonQueryClient) QueryIsBlockBabylonFinalized(queryParams QueryParams) (bool, error) {
-	// check if the contract is disabled
+	// check if the contract is enabled
 	// if so, return true to pass through op derivation pipeline
-	isDisabled, err := babylonClient.queryIsDisabled()
+	isEnabled, err := babylonClient.queryIsEnabled()
 	if err != nil {
 		return false, err
 	}
-	if isDisabled {
+	if !isEnabled {
 		return true, nil
 	}
 
@@ -193,9 +193,9 @@ func (babylonClient *babylonQueryClient) QueryIsBlockBabylonFinalized(queryParam
 	return true, nil
 }
 
-func createIsDisabledQueryData() ([]byte, error) {
+func createIsEnabledQueryData() ([]byte, error) {
 	queryData := ContractQueryMsgs{
-		IsDisabled: &isDisabledQuery{},
+		IsEnabled: &killswitchQuery{},
 	}
 	data, err := json.Marshal(queryData)
 	if err != nil {
@@ -204,8 +204,8 @@ func createIsDisabledQueryData() ([]byte, error) {
 	return data, nil
 }
 
-func (babylonClient *babylonQueryClient) queryIsDisabled() (bool, error) {
-	queryData, err := createIsDisabledQueryData()
+func (babylonClient *babylonQueryClient) queryIsEnabled() (bool, error) {
+	queryData, err := createIsEnabledQueryData()
 	if err != nil {
 		return false, err
 	}
@@ -215,10 +215,10 @@ func (babylonClient *babylonQueryClient) queryIsDisabled() (bool, error) {
 		return false, err
 	}
 
-	var data isDisabledResponse
+	var data killswitchResponse
 	if err := json.Unmarshal(resp.Data, &data); err != nil {
 		return false, err
 	}
 
-	return data.IsDisabled, nil
+	return data.IsEnabled, nil
 }
