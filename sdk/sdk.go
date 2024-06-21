@@ -113,7 +113,7 @@ func (babylonClient *babylonQueryClient) queryConsumerId() (string, error) {
 	return data.ConsumerId, nil
 }
 
-func queryMultiFpVotingPower(fps []string, btcHeight uint64) (map[string]uint64, error) {
+func queryMultiFpPowerAtHeight(fps []string, btcHeight uint64) (map[string]uint64, error) {
 	// TODO: implement
 	return map[string]uint64{
 		"pk1": 12345,
@@ -143,7 +143,7 @@ func (babylonClient *babylonQueryClient) QueryIsBlockBabylonFinalized(queryParam
 	}
 
 	// get all FPs voting power at this BTC height
-	allFpVotingPower, err := queryMultiFpVotingPower(allFpPks, btcblockHeight)
+	allFpPower, err := queryMultiFpPowerAtHeight(allFpPks, btcblockHeight)
 	if err != nil {
 		return false, err
 	}
@@ -156,15 +156,15 @@ func (babylonClient *babylonQueryClient) QueryIsBlockBabylonFinalized(queryParam
 
 	// calculate total voting power
 	var totalPower uint64 = 0
-	for _, power := range allFpVotingPower {
+	for _, power := range allFpPower {
 		totalPower += power
 	}
 
 	// calculate voted voting power
 	var votedPower uint64 = 0
 	for _, key := range votedFpPks {
-		if votingPower, exists := allFpVotingPower[key]; exists {
-			votedPower += votingPower
+		if power, exists := allFpPower[key]; exists {
+			votedPower += power
 		}
 	}
 
