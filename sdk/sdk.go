@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/babylonchain/babylon-da-sdk/sdk/btc"
-	bbntypes "github.com/babylonchain/babylon/types"
 	sdkquerytypes "github.com/cosmos/cosmos-sdk/types/query"
 )
 
@@ -80,17 +79,17 @@ func (babylonClient *babylonQueryClient) queryListOfVotedFinalityProviders(query
 	return data.BtcPkHexList, nil
 }
 
-func (babylonClient *babylonQueryClient) queryFpBtcPubKeys(consumerId string) ([]bbntypes.BIP340PubKey, error) {
+func (babylonClient *babylonQueryClient) queryFpBtcPubKeys(consumerId string) ([]string, error) {
 	pagination := &sdkquerytypes.PageRequest{}
 	resp, err := babylonClient.bbnClient.QueryClient.QueryConsumerFinalityProviders(consumerId, pagination)
 	if err != nil {
 		return nil, err
 	}
 
-	var pkArr []bbntypes.BIP340PubKey
+	var pkArr []string
 
 	for _, fp := range resp.FinalityProviders {
-		pkArr = append(pkArr, *fp.BtcPk)
+		pkArr = append(pkArr, fp.BtcPk.MarshalHex())
 	}
 	return pkArr, nil
 }
@@ -114,7 +113,7 @@ func (babylonClient *babylonQueryClient) queryConsumerId() (string, error) {
 	return data.ConsumerId, nil
 }
 
-func queryMultiFpVotingPower(fps []bbntypes.BIP340PubKey, btcHeight uint64) (map[string]uint64, error) {
+func queryMultiFpVotingPower(fps []string, btcHeight uint64) (map[string]uint64, error) {
 	// TODO: implement
 	return map[string]uint64{
 		"pk1": 12345,
