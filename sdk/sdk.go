@@ -162,7 +162,7 @@ func (babylonClient *babylonQueryClient) QueryIsBlockBabylonFinalized(queryParam
 	}
 
 	// calculate voted voting power
-	var votedPower uint64
+	var votedPower uint64 = 0
 	for _, key := range votedFpPks {
 		if votingPower, exists := allFpVotingPower[key]; exists {
 			votedPower += votingPower
