@@ -130,7 +130,7 @@ func (babylonClient *babylonQueryClient) queryMultiFpPowerAtHeight(fpPubkeyHexLi
 
 // we implemented exact logic as in
 // https://github.com/babylonchain/babylon-private/blob/c5a8d317091e2965e20ea56fa10e98d34aaa3547/x/btcstaking/types/btc_delegation.go#L111-L119
-func (babylonClient *babylonQueryClient) isDelegationEligble(btcDel *btcstakingtypes.BTCDelegationResponse, btcHeight uint64) (bool, error) {
+func (babylonClient *babylonQueryClient) isDelegationEligible(btcDel *btcstakingtypes.BTCDelegationResponse, btcHeight uint64) (bool, error) {
 	btccheckpointParams, err := babylonClient.bbnClient.QueryClient.BTCCheckpointParams()
 	if err != nil {
 		return false, err
@@ -177,11 +177,11 @@ func (babylonClient *babylonQueryClient) queryFpPower(fpPubkeyHex string, btcHei
 		for _, btcDels := range resp.BtcDelegatorDelegations {
 			for _, btcDel := range btcDels.Dels {
 				// check the eligbility of delegation
-				isEligble, err := babylonClient.isDelegationEligble(btcDel, btcHeight)
+				isEligible, err := babylonClient.isDelegationEligible(btcDel, btcHeight)
 				if err != nil {
 					return 0, err
 				}
-				if isEligble {
+				if isEligible {
 					totalPower += btcDel.TotalSat
 				}
 			}
