@@ -199,8 +199,8 @@ func (babylonClient *babylonQueryClient) queryFpPower(fpPubkeyHex string, btcHei
 }
 
 func (babylonClient *babylonQueryClient) QueryIsBlockBabylonFinalized(queryParams QueryParams) (bool, error) {
-	// check if the contract is enabled
-	// if so, return true to pass through op derivation pipeline
+	// check if the finality gadget is enabled
+	// if not, always return true to pass through op derivation pipeline
 	isEnabled, err := babylonClient.queryIsEnabled()
 	if err != nil {
 		return false, err
