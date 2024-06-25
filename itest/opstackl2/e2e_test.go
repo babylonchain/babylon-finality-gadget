@@ -10,9 +10,8 @@ import (
 
 	"github.com/babylonchain/babylon-da-sdk/sdk"
 	"github.com/babylonchain/babylon/testutil/datagen"
-	ftypes "github.com/babylonchain/babylon/x/finality/types"
 	e2etest "github.com/babylonchain/finality-provider/itest"
-	e2etestop "github.com/babylonchain/finality-provider/itest/opstackl2"
+	e2etestbnb "github.com/babylonchain/finality-provider/itest/babylon"
 	"github.com/babylonchain/finality-provider/types"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/stretchr/testify/require"
@@ -23,45 +22,61 @@ func TestBlockBabylonFinalized(t *testing.T) {
 	stm := StartSdkTestManager(t)
 	defer stm.Stop(t)
 
-	// register FP(s) in Babylon Chain and start
-	n := 1
-	fpList := stm.StartFinalityProvider(t, n)
+	// A BTC delegation has to stake to at least one Babylon finality provider
+	// https://github.com/babylonchain/babylon-private/blob/base/consumer-chain-support/x/btcstaking/keeper/msg_server.go#L169-L213
+	// So we have to start Babylon chain FP
+	bbnFpList := stm.StartFinalityProvider(t, true, 1)
 
-	var pubRandListInfo *e2etestop.PubRandListInfo
-	var msgPub *ftypes.MsgCommitPubRandList
+	// start consumer chain FP
+	n := 1
+	fpList := stm.StartFinalityProvider(t, false, n)
+
+	var lastCommittedStartHeight uint64
 	var mockHash []byte
 	// submit BTC delegations for each finality-provider
 	for _, fp := range fpList {
-		// commit pub rand to smart contract
-		pubRandListInfo, msgPub = stm.CommitPubRandList(t, fp.GetBtcPkBIP340())
-
 		// check the public randomness is committed
-		stm.WaitForFpPubRandCommitted(t, fp.GetBtcPkBIP340())
-		// send a BTC delegation
-		_ = stm.InsertBTCDelegation(t, []*btcec.PublicKey{fp.GetBtcPk()}, e2etest.StakingTime, e2etest.StakingAmount)
+		stm.WaitForFpPubRandCommitted(t, fp)
+		// send a BTC delegation too consumer finality provider
+		// send a BTC delegation to Babylon finality provider
+		stm.InsertBTCDelegation(t, []*btcec.PublicKey{bbnFpList[0].GetBtcPk(), fp.GetBtcPk()}, e2etest.StakingTime, e2etest.StakingAmount)
 	}
 
 	// check the BTC delegations are pending
-	delsResp := stm.WaitForNPendingDels(t, n)
-	require.Equal(t, n, len(delsResp))
+	delsResp := stm.WaitForNPendingDels(t, 1)
+	require.Equal(t, 1, len(delsResp))
 
 	// send covenant sigs to each of the delegations
 	for _, delResp := range delsResp {
-		d, err := e2etest.ParseRespBTCDelToBTCDel(delResp)
+		d, err := e2etestbnb.ParseRespBTCDelToBTCDel(delResp)
 		require.NoError(t, err)
 		// send covenant sigs
 		stm.InsertCovenantSigForDelegation(t, d)
 	}
 
 	// check the BTC delegations are active
-	_ = stm.WaitForNActiveDels(t, n)
+	_ = stm.WaitForNActiveDels(t, 1)
 
 	for _, fp := range fpList {
-		// mock block
+		// query pub rand
+		committedPubRandMap, err := stm.OpL2ConsumerCtrl.QueryLastCommittedPublicRand(fp.GetBtcPk(), 1)
+		require.NoError(t, err)
+		for key := range committedPubRandMap {
+			lastCommittedStartHeight = key
+			break
+		}
+		t.Logf("Last committed pubrandList startHeight %d", lastCommittedStartHeight)
+
+		pubRandList, err := fp.GetPubRandList(lastCommittedStartHeight, stm.FpConfig.NumPubRand)
+		require.NoError(t, err)
+		// generate commitment and proof for each public randomness
+		_, proofList := types.GetPubRandCommitAndProofs(pubRandList)
+
+		// mock block hash
 		r := rand.New(rand.NewSource(1))
 		mockHash := datagen.GenRandomByteArray(r, 32)
 		block := &types.BlockInfo{
-			Height: uint64(1),
+			Height: lastCommittedStartHeight,
 			Hash:   mockHash,
 		}
 		// fp sign
@@ -69,14 +84,14 @@ func TestBlockBabylonFinalized(t *testing.T) {
 		require.NoError(t, err)
 
 		// pub rand proof
-		proof, err := pubRandListInfo.ProofList[0].ToProto().Marshal()
+		proof, err := proofList[0].ToProto().Marshal()
 		require.NoError(t, err)
 
 		// submit finality signature to smart contract
 		submitRes, err := stm.OpL2ConsumerCtrl.SubmitFinalitySig(
-			msgPub.FpBtcPk.MustToBTCPK(),
+			fp.GetBtcPk(),
 			block,
-			pubRandListInfo.PubRandList[0],
+			pubRandList[0],
 			proof,
 			fpSig.ToModNScalar(),
 		)
@@ -85,7 +100,7 @@ func TestBlockBabylonFinalized(t *testing.T) {
 	}
 
 	queryParams := sdk.QueryParams{
-		BlockHeight:    uint64(1),
+		BlockHeight:    lastCommittedStartHeight,
 		BlockHash:      hex.EncodeToString(mockHash),
 		BlockTimestamp: uint64(1231473952),
 	}

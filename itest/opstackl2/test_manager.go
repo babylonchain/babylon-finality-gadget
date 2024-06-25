@@ -18,16 +18,16 @@ import (
 	btclctypes "github.com/babylonchain/babylon/x/btclightclient/types"
 	bstypes "github.com/babylonchain/babylon/x/btcstaking/types"
 	e2etest "github.com/babylonchain/finality-provider/itest"
-	e2etest_op "github.com/babylonchain/finality-provider/itest/opstackl2"
+	e2etestbnb "github.com/babylonchain/finality-provider/itest/babylon"
+	e2etestop "github.com/babylonchain/finality-provider/itest/opstackl2"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
-	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	"github.com/stretchr/testify/require"
 )
 
-type OpConsumerTestManager = e2etest_op.OpL2ConsumerTestManager
+type OpConsumerTestManager = e2etestop.OpL2ConsumerTestManager
 
 type SdkTestManager struct {
 	OpConsumerTestManager
@@ -35,7 +35,7 @@ type SdkTestManager struct {
 }
 
 func StartSdkTestManager(t *testing.T) *SdkTestManager {
-	ctm := e2etest_op.StartOpL2ConsumerManager(t)
+	ctm := e2etestop.StartOpL2ConsumerManager(t)
 	client, err := sdk.NewClient(sdk.Config{
 		ChainType:    -1, // only for the e2e test
 		ContractAddr: ctm.OpL2ConsumerCtrl.Cfg.OPFinalityGadgetAddress,
@@ -49,7 +49,7 @@ func StartSdkTestManager(t *testing.T) *SdkTestManager {
 	return stm
 }
 
-func (stm *SdkTestManager) InsertBTCDelegation(t *testing.T, fpPks []*btcec.PublicKey, stakingTime uint16, stakingAmount int64) *e2etest.TestDelegationData {
+func (stm *SdkTestManager) InsertBTCDelegation(t *testing.T, fpPks []*btcec.PublicKey, stakingTime uint16, stakingAmount int64) *e2etestbnb.TestDelegationData {
 	params := stm.StakingParams
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
@@ -61,8 +61,7 @@ func (stm *SdkTestManager) InsertBTCDelegation(t *testing.T, fpPks []*btcec.Publ
 	testStakingInfo := datagen.GenBTCStakingSlashingInfo(
 		r,
 		t,
-		// e2etest.BtcNetworkParams,
-		&chaincfg.SimNetParams,
+		e2etest.BtcNetworkParams,
 		delBtcPrivKey,
 		fpPks,
 		params.CovenantPks,
@@ -128,7 +127,7 @@ func (stm *SdkTestManager) InsertBTCDelegation(t *testing.T, fpPks []*btcec.Publ
 	testUnbondingInfo := datagen.GenBTCUnbondingSlashingInfo(
 		r,
 		t,
-		&chaincfg.SimNetParams,
+		e2etest.BtcNetworkParams,
 		delBtcPrivKey,
 		fpPks,
 		params.CovenantPks,
@@ -177,7 +176,7 @@ func (stm *SdkTestManager) InsertBTCDelegation(t *testing.T, fpPks []*btcec.Publ
 
 	t.Log("successfully submitted a BTC delegation")
 
-	return &e2etest.TestDelegationData{
+	return &e2etestbnb.TestDelegationData{
 		DelegatorPrivKey:        delBtcPrivKey,
 		DelegatorKey:            delBtcPubKey,
 		DelegatorBabylonPrivKey: delBabylonPrivKey.(*secp256k1.PrivKey),
@@ -241,10 +240,14 @@ func (stm *SdkTestManager) InsertCovenantSigForDelegation(t *testing.T, btcDel *
 
 	params := stm.StakingParams
 
+	var fpKeys []*btcec.PublicKey
+	for _, v := range btcDel.FpBtcPkList {
+		fpKeys = append(fpKeys, v.MustToBTCPK())
+	}
+
 	stakingInfo, err := btcstaking.BuildStakingInfo(
 		btcDel.BtcPk.MustToBTCPK(),
-		// TODO: Handle multiple providers
-		[]*btcec.PublicKey{btcDel.FpBtcPkList[0].MustToBTCPK()},
+		fpKeys,
 		params.CovenantPks,
 		params.CovenantQuorum,
 		btcDel.GetStakingTime(),
@@ -261,15 +264,20 @@ func (stm *SdkTestManager) InsertCovenantSigForDelegation(t *testing.T, btcDel *
 	require.NoError(t, err)
 	slashingPathInfo, err := stakingInfo.SlashingPathSpendInfo()
 	require.NoError(t, err)
-	// get covenant private key from the keyring
-	valEncKey, err := asig.NewEncryptionKeyFromBTCPK(btcDel.FpBtcPkList[0].MustToBTCPK())
-	require.NoError(t, err)
+
+	var valEncKeys []*asig.EncryptionKey
+	for _, v := range btcDel.FpBtcPkList {
+		// get covenant private key from the keyring
+		valEncKey, err := asig.NewEncryptionKeyFromBTCPK(v.MustToBTCPK())
+		require.NoError(t, err)
+		valEncKeys = append(valEncKeys, valEncKey)
+	}
 
 	unbondingMsgTx, err := bbntypes.NewBTCTxFromBytes(btcDel.BtcUndelegation.UnbondingTx)
 	require.NoError(t, err)
 	unbondingInfo, err := btcstaking.BuildUnbondingInfo(
 		btcDel.BtcPk.MustToBTCPK(),
-		[]*btcec.PublicKey{btcDel.FpBtcPkList[0].MustToBTCPK()},
+		fpKeys,
 		params.CovenantPks,
 		params.CovenantQuorum,
 		uint16(btcDel.UnbondingTime),
@@ -278,15 +286,20 @@ func (stm *SdkTestManager) InsertCovenantSigForDelegation(t *testing.T, btcDel *
 	)
 	require.NoError(t, err)
 
-	// Covenant 0 signatures
-	covenantAdaptorStakingSlashing1, err := slashingTx.EncSign(
-		stakingMsgTx,
-		idx,
-		slashingPathInfo.RevealedLeaf.Script,
-		stm.CovenantPrivKeys[0],
-		valEncKey,
-	)
-	require.NoError(t, err)
+	var covenantAdaptorStakingSlashing1List [][]byte
+	for _, v := range valEncKeys {
+		// Covenant 0 signatures
+		covenantAdaptorStakingSlashing1, err := slashingTx.EncSign(
+			stakingMsgTx,
+			idx,
+			slashingPathInfo.RevealedLeaf.Script,
+			stm.CovenantPrivKeys[0],
+			v,
+		)
+		require.NoError(t, err)
+		covenantAdaptorStakingSlashing1List = append(covenantAdaptorStakingSlashing1List, covenantAdaptorStakingSlashing1.MustMarshal())
+	}
+
 	covenantUnbondingSig1, err := btcstaking.SignTxWithOneScriptSpendInputFromTapLeaf(
 		unbondingMsgTx,
 		stakingInfo.StakingOutput,
@@ -295,36 +308,45 @@ func (stm *SdkTestManager) InsertCovenantSigForDelegation(t *testing.T, btcDel *
 	)
 	require.NoError(t, err)
 
-	// slashing unbonding tx sig
-	unbondingTxSlashingPathInfo, err := unbondingInfo.SlashingPathSpendInfo()
-	require.NoError(t, err)
-	covenantAdaptorUnbondingSlashing1, err := btcDel.BtcUndelegation.SlashingTx.EncSign(
-		unbondingMsgTx,
-		0,
-		unbondingTxSlashingPathInfo.RevealedLeaf.Script,
-		stm.CovenantPrivKeys[0],
-		valEncKey,
-	)
-	require.NoError(t, err)
+	var covenantAdaptorUnbondingSlashing1List [][]byte
+	for _, v := range valEncKeys {
+		// slashing unbonding tx sig
+		unbondingTxSlashingPathInfo, err := unbondingInfo.SlashingPathSpendInfo()
+		require.NoError(t, err)
+		covenantAdaptorUnbondingSlashing1, err := btcDel.BtcUndelegation.SlashingTx.EncSign(
+			unbondingMsgTx,
+			0,
+			unbondingTxSlashingPathInfo.RevealedLeaf.Script,
+			stm.CovenantPrivKeys[0],
+			v,
+		)
+		require.NoError(t, err)
+		covenantAdaptorUnbondingSlashing1List = append(covenantAdaptorUnbondingSlashing1List, covenantAdaptorUnbondingSlashing1.MustMarshal())
+	}
 
 	_, err = stm.BBNClient.SubmitCovenantSigs(
 		stm.CovenantPrivKeys[0].PubKey(),
 		stakingMsgTx.TxHash().String(),
-		[][]byte{covenantAdaptorStakingSlashing1.MustMarshal()},
+		covenantAdaptorStakingSlashing1List,
 		covenantUnbondingSig1,
-		[][]byte{covenantAdaptorUnbondingSlashing1.MustMarshal()},
+		covenantAdaptorUnbondingSlashing1List,
 	)
 	require.NoError(t, err)
 
-	// Covenant 1 signatures
-	covenantAdaptorStakingSlashing2, err := slashingTx.EncSign(
-		stakingMsgTx,
-		idx,
-		slashingPathInfo.RevealedLeaf.Script,
-		stm.CovenantPrivKeys[1],
-		valEncKey,
-	)
-	require.NoError(t, err)
+	var covenantAdaptorStakingSlashing2List [][]byte
+	for _, v := range valEncKeys {
+		// Covenant 1 signatures
+		covenantAdaptorStakingSlashing2, err := slashingTx.EncSign(
+			stakingMsgTx,
+			idx,
+			slashingPathInfo.RevealedLeaf.Script,
+			stm.CovenantPrivKeys[1],
+			v,
+		)
+		require.NoError(t, err)
+		covenantAdaptorStakingSlashing2List = append(covenantAdaptorStakingSlashing2List, covenantAdaptorStakingSlashing2.MustMarshal())
+	}
+
 	covenantUnbondingSig2, err := btcstaking.SignTxWithOneScriptSpendInputFromTapLeaf(
 		unbondingMsgTx,
 		stakingInfo.StakingOutput,
@@ -333,23 +355,28 @@ func (stm *SdkTestManager) InsertCovenantSigForDelegation(t *testing.T, btcDel *
 	)
 	require.NoError(t, err)
 
-	// slashing unbonding tx sig
+	var covenantAdaptorUnbondingSlashing2List [][]byte
+	for _, v := range valEncKeys {
+		// slashing unbonding tx sig
+		unbondingTxSlashingPathInfo, err := unbondingInfo.SlashingPathSpendInfo()
+		require.NoError(t, err)
+		covenantAdaptorUnbondingSlashing2, err := btcDel.BtcUndelegation.SlashingTx.EncSign(
+			unbondingMsgTx,
+			0,
+			unbondingTxSlashingPathInfo.RevealedLeaf.Script,
+			stm.CovenantPrivKeys[1],
+			v,
+		)
+		require.NoError(t, err)
+		covenantAdaptorUnbondingSlashing2List = append(covenantAdaptorUnbondingSlashing2List, covenantAdaptorUnbondingSlashing2.MustMarshal())
+	}
 
-	covenantAdaptorUnbondingSlashing2, err := btcDel.BtcUndelegation.SlashingTx.EncSign(
-		unbondingMsgTx,
-		0,
-		unbondingTxSlashingPathInfo.RevealedLeaf.Script,
-		stm.CovenantPrivKeys[1],
-		valEncKey,
-	)
-
-	require.NoError(t, err)
 	_, err = stm.BBNClient.SubmitCovenantSigs(
 		stm.CovenantPrivKeys[1].PubKey(),
 		stakingMsgTx.TxHash().String(),
-		[][]byte{covenantAdaptorStakingSlashing2.MustMarshal()},
+		covenantAdaptorStakingSlashing2List,
 		covenantUnbondingSig2,
-		[][]byte{covenantAdaptorUnbondingSlashing2.MustMarshal()},
+		covenantAdaptorUnbondingSlashing2List,
 	)
 	require.NoError(t, err)
 }
