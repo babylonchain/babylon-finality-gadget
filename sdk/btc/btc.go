@@ -15,7 +15,7 @@ const (
 	// No need to search from height 0. Any bitcoin height before the first FP registration works
 	// 848664 is a block at 2024-06-19
 	// https://mempool.space/block/000000000000000000019200f971921bb73e5f16b5098ad71a91849a63964a70
-	btcHeightSearchStart uint64 = 848664
+	btcHeightSearchStart uint64 = 0
 )
 
 type rpcRequest struct {
