@@ -17,7 +17,7 @@ clean-e2e:
 		echo "No processes to kill"; \
 	fi
 
-.PHONY: test run clean-e2e test-e2e-op
+.PHONY: test run clean-e2e test-e2e
 
 # Target to run tests
 test:
@@ -27,5 +27,5 @@ test:
 run:
 	go run demo/main.go
 
-test-e2e-op: clean-e2e install-babylond
+test-e2e: clean-e2e install-babylond
 	go test -mod=readonly -timeout=25m -v $(PACKAGES_E2E_OP) -count=1 --tags=e2e_op
