@@ -36,7 +36,7 @@ func TestBlockBabylonFinalized(t *testing.T) {
 	// submit BTC delegations for each finality-provider
 	for _, fp := range fpList {
 		// check the public randomness is committed
-		stm.WaitForFpPubRandCommitted(t, fp)
+		stm.OpConsumerTestManager.WaitForFpPubRandCommitted(t, fp)
 		// send a BTC delegation too consumer finality provider
 		// send a BTC delegation to Babylon finality provider
 		stm.InsertBTCDelegation(t, []*btcec.PublicKey{bbnFpList[0].GetBtcPk(), fp.GetBtcPk()}, e2etest.StakingTime, e2etest.StakingAmount)
@@ -67,7 +67,7 @@ func TestBlockBabylonFinalized(t *testing.T) {
 		}
 		t.Logf("Last committed pubrandList startHeight %d", lastCommittedStartHeight)
 
-		pubRandList, err := fp.GetPubRandList(lastCommittedStartHeight, stm.FpConfig.NumPubRand)
+		pubRandList, err := fp.GetPubRandList(lastCommittedStartHeight, stm.OpConsumerTestManager.FpConfig.NumPubRand)
 		require.NoError(t, err)
 		// generate commitment and proof for each public randomness
 		_, proofList := types.GetPubRandCommitAndProofs(pubRandList)
