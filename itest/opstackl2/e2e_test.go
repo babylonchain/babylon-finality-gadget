@@ -28,23 +28,24 @@ func TestBlockBabylonFinalized(t *testing.T) {
 	bbnFpList := stm.StartFinalityProvider(t, true, 1)
 
 	// start consumer chain FP
-	n := 1
+	n := 2
 	fpList := stm.StartFinalityProvider(t, false, n)
 
-	var lastCommittedStartHeight uint64
-	var mockHash []byte
+	stakingAmount := e2eutils.StakingAmount
 	// submit BTC delegations for each finality-provider
-	for _, fp := range fpList {
+	for i := 0; i < n; i++ {
+		if i == 0 {
+			stakingAmount = 3 * stakingAmount
+		}
 		// check the public randomness is committed
-		e2eutils.WaitForFpPubRandCommitted(t, fp)
-		// send a BTC delegation too consumer finality provider
-		// send a BTC delegation to Babylon finality provider
-		stm.InsertBTCDelegation(t, []*btcec.PublicKey{bbnFpList[0].GetBtcPk(), fp.GetBtcPk()}, e2eutils.StakingTime, e2eutils.StakingAmount)
+		e2eutils.WaitForFpPubRandCommitted(t, fpList[i])
+		// send a BTC delegation to consumer and Babylon finality providers
+		stm.InsertBTCDelegation(t, []*btcec.PublicKey{bbnFpList[0].GetBtcPk(), fpList[i].GetBtcPk()}, e2eutils.StakingTime, stakingAmount)
 	}
 
 	// check the BTC delegations are pending
-	delsResp := stm.WaitForNPendingDels(t, 1)
-	require.Equal(t, 1, len(delsResp))
+	delsResp := stm.WaitForNPendingDels(t, n)
+	require.Equal(t, n, len(delsResp))
 
 	// send covenant sigs to each of the delegations
 	for _, delResp := range delsResp {
@@ -55,11 +56,17 @@ func TestBlockBabylonFinalized(t *testing.T) {
 	}
 
 	// check the BTC delegations are active
-	_ = stm.WaitForNActiveDels(t, 1)
+	_ = stm.WaitForNActiveDels(t, n)
 
-	for _, fp := range fpList {
+	queryFpPk := fpList[n-1].GetBtcPk()
+	t.Logf("Query pub rand via finality provider %s", fpList[n-1].GetBtcPkHex())
+	var lastCommittedStartHeight uint64
+	var mockHash, mockNextHash []byte
+	r := rand.New(rand.NewSource(1))
+	for i := 0; i < n; i++ {
+		t.Logf("Finality provider %s", fpList[i].GetBtcPkHex())
 		// query pub rand
-		committedPubRandMap, err := stm.OpL2ConsumerCtrl.QueryLastCommittedPublicRand(fp.GetBtcPk(), 1)
+		committedPubRandMap, err := stm.OpL2ConsumerCtrl.QueryLastCommittedPublicRand(queryFpPk, 1)
 		require.NoError(t, err)
 		for key := range committedPubRandMap {
 			lastCommittedStartHeight = key
@@ -67,36 +74,63 @@ func TestBlockBabylonFinalized(t *testing.T) {
 		}
 		t.Logf("Last committed pubrandList startHeight %d", lastCommittedStartHeight)
 
-		pubRandList, err := fp.GetPubRandList(lastCommittedStartHeight, stm.FpConfig.NumPubRand)
+		pubRandList, err := fpList[i].GetPubRandList(lastCommittedStartHeight, stm.FpConfig.NumPubRand)
 		require.NoError(t, err)
 		// generate commitment and proof for each public randomness
 		_, proofList := types.GetPubRandCommitAndProofs(pubRandList)
 
 		// mock block hash
-		r := rand.New(rand.NewSource(1))
-		mockHash := datagen.GenRandomByteArray(r, 32)
-		block := &types.BlockInfo{
-			Height: lastCommittedStartHeight,
-			Hash:   mockHash,
+		mockHash = datagen.GenRandomByteArray(r, 32)
+		if i == 0 {
+			block := &types.BlockInfo{
+				Height: lastCommittedStartHeight,
+				Hash:   mockHash,
+			}
+			// fp sign
+			fpSig, err := fpList[i].SignFinalitySig(block)
+			require.NoError(t, err)
+
+			// pub rand proof
+			proof, err := proofList[0].ToProto().Marshal()
+			require.NoError(t, err)
+
+			// submit finality signature to smart contract
+			_, err = stm.OpL2ConsumerCtrl.SubmitFinalitySig(
+				fpList[i].GetBtcPk(),
+				block,
+				pubRandList[0],
+				proof,
+				fpSig.ToModNScalar(),
+			)
+			require.NoError(t, err)
+			t.Logf("Submit finality signature to op finality contract")
+		}
+
+		// mock next block hash
+		mockNextHash = datagen.GenRandomByteArray(r, 32)
+		nextBlock := &types.BlockInfo{
+			Height: lastCommittedStartHeight + 1,
+			Hash:   mockNextHash,
 		}
 		// fp sign
-		fpSig, err := fp.SignFinalitySig(block)
+		fpSig, err := fpList[i].SignFinalitySig(nextBlock)
 		require.NoError(t, err)
 
 		// pub rand proof
-		proof, err := proofList[0].ToProto().Marshal()
+		proof, err := proofList[1].ToProto().Marshal()
 		require.NoError(t, err)
 
 		// submit finality signature to smart contract
 		_, err = stm.OpL2ConsumerCtrl.SubmitFinalitySig(
-			fp.GetBtcPk(),
-			block,
-			pubRandList[0],
+			fpList[i].GetBtcPk(),
+			nextBlock,
+			pubRandList[1],
 			proof,
 			fpSig.ToModNScalar(),
 		)
 		require.NoError(t, err)
 		t.Logf("Submit finality signature to op finality contract")
+
 	}
 
 	queryParams := sdk.QueryParams{
@@ -107,4 +141,13 @@ func TestBlockBabylonFinalized(t *testing.T) {
 	finalized, err := stm.sdkBBNClient.QueryIsBlockBabylonFinalized(queryParams)
 	require.NoError(t, err)
 	require.Equal(t, true, finalized)
+
+	queryParams = sdk.QueryParams{
+		BlockHeight:    lastCommittedStartHeight + 1,
+		BlockHash:      hex.EncodeToString(mockNextHash),
+		BlockTimestamp: uint64(1231473952),
+	}
+	finalized, err = stm.sdkBBNClient.QueryIsBlockBabylonFinalized(queryParams)
+	require.NoError(t, err)
+	require.Equal(t, false, finalized)
 }
