@@ -10,7 +10,7 @@ import (
 
 	"github.com/babylonchain/babylon-da-sdk/sdk"
 	"github.com/babylonchain/babylon/testutil/datagen"
-	e2etest "github.com/babylonchain/finality-provider/itest"
+	e2eutils "github.com/babylonchain/finality-provider/itest"
 	e2etestbnb "github.com/babylonchain/finality-provider/itest/babylon"
 	"github.com/babylonchain/finality-provider/types"
 	"github.com/btcsuite/btcd/btcec/v2"
@@ -36,10 +36,10 @@ func TestBlockBabylonFinalized(t *testing.T) {
 	// submit BTC delegations for each finality-provider
 	for _, fp := range fpList {
 		// check the public randomness is committed
-		stm.OpConsumerTestManager.WaitForFpPubRandCommitted(t, fp)
+		e2eutils.WaitForFpPubRandCommitted(t, fp)
 		// send a BTC delegation too consumer finality provider
 		// send a BTC delegation to Babylon finality provider
-		stm.InsertBTCDelegation(t, []*btcec.PublicKey{bbnFpList[0].GetBtcPk(), fp.GetBtcPk()}, e2etest.StakingTime, e2etest.StakingAmount)
+		stm.InsertBTCDelegation(t, []*btcec.PublicKey{bbnFpList[0].GetBtcPk(), fp.GetBtcPk()}, e2eutils.StakingTime, e2eutils.StakingAmount)
 	}
 
 	// check the BTC delegations are pending
