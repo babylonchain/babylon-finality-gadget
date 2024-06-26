@@ -67,7 +67,7 @@ func TestBlockBabylonFinalized(t *testing.T) {
 		}
 		t.Logf("Last committed pubrandList startHeight %d", lastCommittedStartHeight)
 
-		pubRandList, err := fp.GetPubRandList(lastCommittedStartHeight, stm.FpConfig.NumPubRand)
+		pubRandList, err := fp.GetPubRandList(lastCommittedStartHeight, stm.OpConsumerTestManager.FpConfig.NumPubRand)
 		require.NoError(t, err)
 		// generate commitment and proof for each public randomness
 		_, proofList := types.GetPubRandCommitAndProofs(pubRandList)
