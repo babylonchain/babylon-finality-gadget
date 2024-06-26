@@ -88,7 +88,7 @@ func TestBlockBabylonFinalized(t *testing.T) {
 		require.NoError(t, err)
 
 		// submit finality signature to smart contract
-		submitRes, err := stm.OpL2ConsumerCtrl.SubmitFinalitySig(
+		_, err = stm.OpL2ConsumerCtrl.SubmitFinalitySig(
 			fp.GetBtcPk(),
 			block,
 			pubRandList[0],
@@ -96,7 +96,7 @@ func TestBlockBabylonFinalized(t *testing.T) {
 			fpSig.ToModNScalar(),
 		)
 		require.NoError(t, err)
-		t.Logf("Submit finality signature to op finality contract %s", submitRes.TxHash)
+		t.Logf("Submit finality signature to op finality contract")
 	}
 
 	queryParams := sdk.QueryParams{
