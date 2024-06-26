@@ -5,10 +5,8 @@ go 1.21
 require (
 	github.com/CosmWasm/wasmd v0.51.0
 	github.com/babylonchain/babylon v0.8.6
-	github.com/babylonchain/finality-provider v0.1.1-0.20240625233815-b5b751ca7875
-	github.com/btcsuite/btcd v0.24.0
+	github.com/babylonchain/finality-provider v0.1.1-0.20240626032341-8e5f2586f892
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2
-	github.com/btcsuite/btcd/btcutil v1.1.5
 	github.com/cosmos/cosmos-sdk v0.50.6
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/zap v1.26.0
@@ -51,6 +49,8 @@ require (
 	github.com/bgentry/speakeasy v0.1.1-0.20220910012023-760eaf8b6816 // indirect
 	github.com/bits-and-blooms/bitset v1.10.0 // indirect
 	github.com/boljen/go-bitmap v0.0.0-20151001105940-23cd2fb0ce7d // indirect
+	github.com/btcsuite/btcd v0.24.0 // indirect
+	github.com/btcsuite/btcd/btcutil v1.1.5 // indirect
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.1.0 // indirect
 	github.com/btcsuite/btclog v0.0.0-20170628155309-84c8d2346e9f // indirect
 	github.com/btcsuite/btcwallet/walletdb v1.4.0 // indirect
