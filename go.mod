@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/CosmWasm/wasmd v0.51.0
 	github.com/babylonchain/babylon v0.8.6
-	github.com/babylonchain/finality-provider v0.1.1-0.20240625210047-0b5132d5b127
+	github.com/babylonchain/finality-provider v0.1.1-0.20240625233815-b5b751ca7875
 	github.com/btcsuite/btcd v0.24.0
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2
 	github.com/btcsuite/btcd/btcutil v1.1.5
