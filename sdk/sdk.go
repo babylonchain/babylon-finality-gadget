@@ -9,7 +9,7 @@ import (
 	sdkquerytypes "github.com/cosmos/cosmos-sdk/types/query"
 )
 
-type QueryParams struct {
+type L2Block struct {
 	BlockHeight    uint64 `mapstructure:"block-height"`
 	BlockHash      string `mapstructure:"block-hash"`
 	BlockTimestamp uint64 `mapstructure:"block-timestamp"`
@@ -50,7 +50,7 @@ func createConfigQueryData() ([]byte, error) {
 	return data, nil
 }
 
-func createBlockVotesQueryData(queryParams QueryParams) ([]byte, error) {
+func createBlockVotesQueryData(queryParams *L2Block) ([]byte, error) {
 	queryData := ContractQueryMsgs{
 		BlockVotes: &blockVotes{
 			Height: queryParams.BlockHeight,
@@ -64,7 +64,7 @@ func createBlockVotesQueryData(queryParams QueryParams) ([]byte, error) {
 	return data, nil
 }
 
-func (babylonClient *BabylonQueryClient) queryListOfVotedFinalityProviders(queryParams QueryParams) ([]string, error) {
+func (babylonClient *BabylonQueryClient) queryListOfVotedFinalityProviders(queryParams *L2Block) ([]string, error) {
 	queryData, err := createBlockVotesQueryData(queryParams)
 	if err != nil {
 		return nil, err
@@ -198,7 +198,7 @@ func (babylonClient *BabylonQueryClient) queryFpPower(fpPubkeyHex string, btcHei
 	return totalPower, nil
 }
 
-func (babylonClient *BabylonQueryClient) QueryIsBlockBabylonFinalized(queryParams QueryParams) (bool, error) {
+func (babylonClient *BabylonQueryClient) QueryIsBlockBabylonFinalized(queryParams *L2Block) (bool, error) {
 	// check if the finality gadget is enabled
 	// if not, always return true to pass through op derivation pipeline
 	isEnabled, err := babylonClient.queryIsEnabled()

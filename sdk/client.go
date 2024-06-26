@@ -25,7 +25,7 @@ type Config struct {
 	ContractAddr string `mapstructure:"contract-addr"`
 }
 
-func (config Config) getRpcAddr() (string, error) {
+func (config *Config) getRpcAddr() (string, error) {
 	switch config.ChainType {
 	case BabylonLocalnet:
 		// only for the e2e test
