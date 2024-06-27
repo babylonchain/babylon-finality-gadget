@@ -2,7 +2,6 @@ package sdk
 
 import (
 	"encoding/json"
-	"errors"
 
 	"github.com/babylonchain/babylon-da-sdk/sdk/btc"
 	btcstakingtypes "github.com/babylonchain/babylon/x/btcstaking/types"
@@ -261,7 +260,7 @@ func (babylonClient *BabylonQueryClient) QueryIsBlockBabylonFinalized(queryParam
 	// TODO: the quorom is hardcode for now. later we can consider make it a config param
 	// quorom < 2/3
 	if votedPower*3 < totalPower*2 {
-		return false, errors.New("not enough voting power")
+		return false, nil
 	}
 	return true, nil
 }
