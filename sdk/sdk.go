@@ -257,7 +257,6 @@ func (babylonClient *BabylonQueryClient) QueryIsBlockBabylonFinalized(queryParam
 		}
 	}
 
-	// TODO: the quorom is hardcode for now. later we can consider make it a config param
 	// quorom < 2/3
 	if votedPower*3 < totalPower*2 {
 		return false, nil
