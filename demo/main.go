@@ -26,7 +26,9 @@ func checkBlockFinalized(height uint64, hash string) {
 		BlockTimestamp: uint64(1718332131),
 	})
 	if err != nil {
-		fmt.Printf("error checking block %d: %v\n", height, err)
+		if _, ok := err.(*sdk.NoFpHasVotingPowerError); ok {
+			fmt.Printf("checking block %d: no FP has voting power, skip it\n", height)
+		}
 	} else {
 		fmt.Printf("is block %d finalized?: %t\n", height, isFinalized)
 	}
