@@ -240,7 +240,8 @@ func (babylonClient *BabylonQueryClient) QueryIsBlockBabylonFinalized(queryParam
 
 	// no FP has voting power for the consumer chain
 	if totalPower == 0 {
-		return false, nil
+		// skip the block if no FP has voting power
+		return true, nil
 	}
 
 	// get all FPs that voted this (L2 block height, L2 block hash) combination
