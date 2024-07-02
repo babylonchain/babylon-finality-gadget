@@ -4,6 +4,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/babylonchain/babylon-da-sdk/sdk/btc"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,6 +19,7 @@ func newE2eClientWithStubContract() *BabylonQueryClient {
 	stubContractConfig := &Config{
 		ChainType:    0,
 		ContractAddr: "bbn1ghd753shjuwexxywmgs4xz7x2q732vcnkm6h2pyv9s6ah3hylvrqxxvh0f",
+		BitcoinRpc:   btc.RpcURL,
 	}
 	client, err := NewClient(stubContractConfig)
 	if err != nil {

@@ -221,7 +221,7 @@ func (babylonClient *BabylonQueryClient) QueryIsBlockBabylonFinalized(queryParam
 	}
 
 	// convert the L2 timestamp to BTC height
-	btcblockHeight, err := btc.GetBlockHeightByTimestamp(queryParams.BlockTimestamp)
+	btcblockHeight, err := btc.GetBlockHeightByTimestamp(babylonClient.config.BitcoinRpc, queryParams.BlockTimestamp)
 	if err != nil {
 		return false, err
 	}

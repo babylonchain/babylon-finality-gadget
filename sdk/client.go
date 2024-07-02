@@ -23,6 +23,7 @@ const (
 type Config struct {
 	ChainType    int    `mapstructure:"chain-type"`
 	ContractAddr string `mapstructure:"contract-addr"`
+	BitcoinRpc   string `mapstructure:"bitcoin-rpc"`
 }
 
 func (config *Config) getRpcAddr() (string, error) {

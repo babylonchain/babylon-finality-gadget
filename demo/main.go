@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/babylonchain/babylon-da-sdk/sdk"
+	"github.com/babylonchain/babylon-da-sdk/sdk/btc"
 )
 
 func checkBlockFinalized(height uint64, hash string) {
@@ -11,6 +12,7 @@ func checkBlockFinalized(height uint64, hash string) {
 		ChainType: 0,
 		// TODO: avoid using stub contract
 		ContractAddr: "bbn1ghd753shjuwexxywmgs4xz7x2q732vcnkm6h2pyv9s6ah3hylvrqxxvh0f",
+		BitcoinRpc:   btc.RpcURL,
 	})
 
 	if err != nil {

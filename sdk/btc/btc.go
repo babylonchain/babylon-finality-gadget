@@ -11,7 +11,7 @@ import (
 const (
 	// TODO: for now using public RPC is fine but it can get rate limited. So in the future, we should
 	// use dedicated RPC or even consider a config param
-	rpcURL = "https://rpc.ankr.com/btc"
+	RpcURL = "https://rpc.ankr.com/btc"
 )
 
 type rpcRequest struct {
@@ -26,7 +26,7 @@ type rpcResponse struct {
 	ID     string          `json:"id"`
 }
 
-func callRPC(method string, params []interface{}) (json.RawMessage, error) {
+func callRPC(rpcURL string, method string, params []interface{}) (json.RawMessage, error) {
 	requestBody, err := json.Marshal(rpcRequest{Method: method, Params: params, ID: "1"})
 	if err != nil {
 		return nil, err
@@ -63,10 +63,10 @@ func callRPC(method string, params []interface{}) (json.RawMessage, error) {
 }
 
 // given a timestamp, search the largest block height whose timestamp is less or equal to it
-func GetBlockHeightByTimestamp(targetTimestamp uint64) (uint64, error) {
+func GetBlockHeightByTimestamp(rpcURL string, targetTimestamp uint64) (uint64, error) {
 	var currentHeight uint64
 	// returns the height of the most-work fully-validated chain.
-	result, err := callRPC("getblockcount", []interface{}{})
+	result, err := callRPC(rpcURL, "getblockcount", []interface{}{})
 	if err != nil {
 		return 0, err
 	}
@@ -81,7 +81,7 @@ func GetBlockHeightByTimestamp(targetTimestamp uint64) (uint64, error) {
 		midHeight := (lowerBound + upperBound) / 2
 
 		// get block hash by height
-		result, err := callRPC("getblockhash", []interface{}{midHeight})
+		result, err := callRPC(rpcURL, "getblockhash", []interface{}{midHeight})
 		if err != nil {
 			return 0, err
 		}
@@ -91,7 +91,7 @@ func GetBlockHeightByTimestamp(targetTimestamp uint64) (uint64, error) {
 		}
 
 		// get block header by hash. the header contains info such as the block time expressed in UNIX epoch time
-		result, err = callRPC("getblockheader", []interface{}{blockHash})
+		result, err = callRPC(rpcURL, "getblockheader", []interface{}{blockHash})
 		if err != nil {
 			return 0, err
 		}
