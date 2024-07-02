@@ -38,6 +38,14 @@ type blockVotesResponse struct {
 
 type isEnabledQuery struct{}
 
+type NoFpHasVotingPowerError struct {
+	Message string
+}
+
+func (e *NoFpHasVotingPowerError) Error() string {
+	return e.Message
+}
+
 func createConfigQueryData() ([]byte, error) {
 	queryData := ContractQueryMsgs{
 		Config: &contractConfig{},
@@ -240,8 +248,7 @@ func (babylonClient *BabylonQueryClient) QueryIsBlockBabylonFinalized(queryParam
 
 	// no FP has voting power for the consumer chain
 	if totalPower == 0 {
-		// skip the block if no FP has voting power
-		return true, nil
+		return false, &NoFpHasVotingPowerError{"no FP has voting power for the consumer chain"}
 	}
 
 	// get all FPs that voted this (L2 block height, L2 block hash) combination
