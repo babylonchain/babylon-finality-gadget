@@ -11,29 +11,30 @@ import (
 func TestBtc(t *testing.T) {
 	var blockHeight uint64
 	var err error
+	rpcURL := "https://rpc.ankr.com/btc"
 
 	// timestmap between block 848682 and 848683
-	blockHeight, err = GetBlockHeightByTimestamp(RpcURL, uint64(1718840690))
+	blockHeight, err = GetBlockHeightByTimestamp(rpcURL, uint64(1718840690))
 	require.Nil(t, err)
 	require.Equal(t, uint64(848682), blockHeight)
 
 	// the exact timestamp of block 848682
-	blockHeight, err = GetBlockHeightByTimestamp(RpcURL, uint64(1718839311))
+	blockHeight, err = GetBlockHeightByTimestamp(rpcURL, uint64(1718839311))
 	require.Nil(t, err)
 	require.Equal(t, uint64(848682), blockHeight)
 
 	// the exact timestamp minus one of block 848682
-	blockHeight, err = GetBlockHeightByTimestamp(RpcURL, uint64(1718839310))
+	blockHeight, err = GetBlockHeightByTimestamp(rpcURL, uint64(1718839310))
 	require.Nil(t, err)
 	require.Equal(t, uint64(848681), blockHeight)
 
 	// a timestamp in the future i.e. year 2056
-	blockHeight, err = GetBlockHeightByTimestamp(RpcURL, uint64(2718840690))
+	blockHeight, err = GetBlockHeightByTimestamp(rpcURL, uint64(2718840690))
 	require.Nil(t, err)
 	require.Equal(t, uint64(0), blockHeight)
 
 	// a timestamp in the past i.e. year 2014
-	blockHeight, err = GetBlockHeightByTimestamp(RpcURL, uint64(1418840690))
+	blockHeight, err = GetBlockHeightByTimestamp(rpcURL, uint64(1418840690))
 	require.Nil(t, err)
 	require.Equal(t, uint64(0), blockHeight)
 

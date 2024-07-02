@@ -8,12 +8,6 @@ import (
 	"net/http"
 )
 
-const (
-	// TODO: for now using public RPC is fine but it can get rate limited. So in the future, we should
-	// use dedicated RPC or even consider a config param
-	RpcURL = "https://rpc.ankr.com/btc"
-)
-
 type rpcRequest struct {
 	Method string        `json:"method"`
 	Params []interface{} `json:"params"`
