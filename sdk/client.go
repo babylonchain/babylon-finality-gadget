@@ -21,9 +21,9 @@ const (
 
 // Config defines configuration for the Babylon query client
 type Config struct {
-	ChainType    int    `mapstructure:"chain-type"`
 	ContractAddr string `mapstructure:"contract-addr"`
 	BitcoinRpc   string `mapstructure:"bitcoin-rpc"`
+	ChainType    int    `mapstructure:"chain-type"`
 }
 
 func (config *Config) getRpcAddr() (string, error) {

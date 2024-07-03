@@ -31,7 +31,7 @@ func checkBlockFinalized(height uint64, hash string) {
 		return
 	}
 
-	if !errors.Is(err, sdk.NoFpHasVotingPowerError) {
+	if !errors.Is(err, sdk.ErrNoFpHasVotingPower) {
 		fmt.Printf("error checking block %d: %v\n", height, err)
 	} else {
 		fmt.Printf("no FP has voting power at block %d for the consumer chain\n", height)
