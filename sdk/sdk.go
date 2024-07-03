@@ -2,6 +2,7 @@ package sdk
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/babylonchain/babylon-da-sdk/sdk/btc"
 	btcstakingtypes "github.com/babylonchain/babylon/x/btcstaking/types"
@@ -38,13 +39,7 @@ type blockVotesResponse struct {
 
 type isEnabledQuery struct{}
 
-type NoFpHasVotingPowerError struct {
-	Message string
-}
-
-func (e *NoFpHasVotingPowerError) Error() string {
-	return e.Message
-}
+var NoFpHasVotingPowerError = fmt.Errorf("no FP has voting power for the consumer chain")
 
 func createConfigQueryData() ([]byte, error) {
 	queryData := ContractQueryMsgs{
@@ -248,7 +243,7 @@ func (babylonClient *BabylonQueryClient) QueryIsBlockBabylonFinalized(queryParam
 
 	// no FP has voting power for the consumer chain
 	if totalPower == 0 {
-		return false, &NoFpHasVotingPowerError{"no FP has voting power for the consumer chain"}
+		return false, NoFpHasVotingPowerError
 	}
 
 	// get all FPs that voted this (L2 block height, L2 block hash) combination
