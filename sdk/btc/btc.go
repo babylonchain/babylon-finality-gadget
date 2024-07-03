@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
 const (
@@ -26,40 +27,55 @@ type rpcResponse struct {
 	Result json.RawMessage `json:"result"`
 }
 
-func callRPC(method string, params []interface{}) (json.RawMessage, error) {
-	requestBody, err := json.Marshal(rpcRequest{Method: method, Params: params, ID: "1"})
-	if err != nil {
-		return nil, err
-	}
+func callRPC(rpcURL string, method string, params []interface{}) (json.RawMessage, error) {
+	var responseResult json.RawMessage
+	maxRetries := 3
+	retryInterval := 500 * time.Millisecond
 
-	req, err := http.NewRequest("POST", rpcURL, bytes.NewBuffer(requestBody))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
+	for retries := 0; retries <= maxRetries; retries++ {
+		requestBody, err := json.Marshal(rpcRequest{Method: method, Params: params, ID: "1"})
+		if err != nil {
+			return nil, err
+		}
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+		req, err := http.NewRequest("POST", rpcURL, bytes.NewBuffer(requestBody))
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Content-Type", "application/json")
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
 
-	var response rpcResponse
-	if err := json.Unmarshal(body, &response); err != nil {
-		return nil, err
-	}
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
 
-	if response.Error != nil {
-		return nil, fmt.Errorf("RPC error: %v", response.Error)
-	}
+		var response rpcResponse
+		if err := json.Unmarshal(body, &response); err != nil {
+			return nil, err
+		}
 
-	return response.Result, nil
+		if response.Error != nil {
+			return nil, fmt.Errorf("RPC error: %v", response.Error)
+		}
+
+		responseResult = response.Result
+		if len(responseResult) == 0 {
+			if retries < maxRetries {
+				time.Sleep(retryInterval)
+				continue
+			}
+			return nil, fmt.Errorf("empty response result from RPC method %s", method)
+		}
+		break
+	}
+	return responseResult, nil
 }
 
 // given a timestamp, search the largest block height whose timestamp is less or equal to it
