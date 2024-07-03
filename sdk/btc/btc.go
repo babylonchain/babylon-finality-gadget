@@ -32,7 +32,12 @@ func callRPC(rpcURL string, method string, params []interface{}) (json.RawMessag
 	maxRetries := 3
 	retryInterval := 500 * time.Millisecond
 
-	for retries := 0; retries <= maxRetries; retries++ {
+	retries := 0
+	for {
+		if retries >= maxRetries {
+			return nil, fmt.Errorf("empty response result from RPC method %s", method)
+		}
+
 		requestBody, err := json.Marshal(rpcRequest{Method: method, Params: params, ID: "1"})
 		if err != nil {
 			return nil, err
@@ -66,14 +71,13 @@ func callRPC(rpcURL string, method string, params []interface{}) (json.RawMessag
 		}
 
 		responseResult = response.Result
-		if len(responseResult) == 0 {
-			if retries < maxRetries {
-				time.Sleep(retryInterval)
-				continue
-			}
-			return nil, fmt.Errorf("empty response result from RPC method %s", method)
+		if len(responseResult) != 0 {
+			break
 		}
-		break
+
+		// retry if response is empty
+		<-time.After(retryInterval)
+		retries++
 	}
 	return responseResult, nil
 }
