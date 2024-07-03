@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/babylonchain/babylon-da-sdk/sdk"
@@ -23,12 +24,16 @@ func checkBlockFinalized(height uint64, hash string) {
 		BlockHash:      hash,
 		BlockTimestamp: uint64(1718332131),
 	})
-	if err != nil {
-		if _, ok := err.(*sdk.NoFpHasVotingPowerError); ok {
-			fmt.Printf("checking block %d: no FP has voting power, skip it\n", height)
-		}
-	} else {
+
+	if err == nil {
 		fmt.Printf("is block %d finalized?: %t\n", height, isFinalized)
+		return
+	}
+
+	if !errors.Is(err, sdk.NoFpHasVotingPowerError) {
+		fmt.Printf("error checking block %d: %v\n", height, err)
+	} else {
+		fmt.Printf("no FP has voting power at block %d for the consumer chain\n", height)
 	}
 }
 
