@@ -2,7 +2,6 @@ package sdk
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/babylonchain/babylon-da-sdk/sdk/btc"
 	btcstakingtypes "github.com/babylonchain/babylon/x/btcstaking/types"
@@ -38,8 +37,6 @@ type blockVotesResponse struct {
 }
 
 type isEnabledQuery struct{}
-
-var NoFpHasVotingPowerError = fmt.Errorf("no FP has voting power for the consumer chain")
 
 func createConfigQueryData() ([]byte, error) {
 	queryData := ContractQueryMsgs{
