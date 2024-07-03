@@ -25,6 +25,7 @@ func checkBlockFinalized(height uint64, hash string) {
 		BlockHash:      hash,
 		BlockTimestamp: uint64(1718332131),
 	})
+
 	if err == nil {
 		fmt.Printf("is block %d finalized?: %t\n", height, isFinalized)
 		return
