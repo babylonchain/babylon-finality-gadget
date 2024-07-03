@@ -29,15 +29,11 @@ type rpcResponse struct {
 
 func callRPC(rpcURL string, method string, params []interface{}) (json.RawMessage, error) {
 	var responseResult json.RawMessage
-	maxRetries := 3
+	maxRetries := 5
 	retryInterval := 500 * time.Millisecond
 
 	retries := 0
 	for {
-		if retries >= maxRetries {
-			return nil, fmt.Errorf("empty response result from RPC method %s", method)
-		}
-
 		requestBody, err := json.Marshal(rpcRequest{Method: method, Params: params, ID: "1"})
 		if err != nil {
 			return nil, err
@@ -70,14 +66,16 @@ func callRPC(rpcURL string, method string, params []interface{}) (json.RawMessag
 			return nil, fmt.Errorf("RPC error: %v", response.Error)
 		}
 
+		// check if response result is empty
 		responseResult = response.Result
 		if len(responseResult) != 0 {
 			break
 		}
-
+		if retries++; retries >= maxRetries {
+			return nil, fmt.Errorf("empty response result from RPC method %s", method)
+		}
 		// retry if response is empty
 		<-time.After(retryInterval)
-		retries++
 	}
 	return responseResult, nil
 }
