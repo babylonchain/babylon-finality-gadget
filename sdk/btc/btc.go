@@ -27,7 +27,7 @@ type rpcResponse struct {
 	Result json.RawMessage `json:"result"`
 }
 
-func callRPC(rpcURL string, method string, params []interface{}) (json.RawMessage, error) {
+func callRPC(method string, params []interface{}) (json.RawMessage, error) {
 	var responseResult json.RawMessage
 	maxRetries := 5
 	retryInterval := 500 * time.Millisecond
