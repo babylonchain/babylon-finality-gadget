@@ -8,7 +8,7 @@ import (
 
 const (
 	// default rpc port of signet is 38332
-	defaultBitcoindRpcHost        = "127.0.0.1:38332"
+	defaultBitcoindRpcHost        = "rpc.ankr.com/btc"
 	defaultBitcoindRPCUser        = "user"
 	defaultBitcoindRPCPass        = "pass"
 	defaultBitcoindBlockCacheSize = 20 * 1024 * 1024 // 20 MB
@@ -53,7 +53,7 @@ func (cfg *BTCConfig) ToConnConfig() *rpcclient.ConnConfig {
 		Host:                 cfg.RPCHost,
 		User:                 cfg.RPCUser,
 		Pass:                 cfg.RPCPass,
-		DisableTLS:           true,
+		DisableTLS:           false,
 		DisableConnectOnNew:  true,
 		DisableAutoReconnect: false,
 		// we use post mode as it sure it works with either bitcoind or btcwallet
