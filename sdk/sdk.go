@@ -3,7 +3,6 @@ package sdk
 import (
 	"encoding/json"
 
-	"github.com/babylonchain/babylon-da-sdk/sdk/btc"
 	btcstakingtypes "github.com/babylonchain/babylon/x/btcstaking/types"
 	sdkquerytypes "github.com/cosmos/cosmos-sdk/types/query"
 )
@@ -221,7 +220,7 @@ func (babylonClient *BabylonQueryClient) QueryIsBlockBabylonFinalized(queryParam
 	}
 
 	// convert the L2 timestamp to BTC height
-	btcblockHeight, err := btc.GetBlockHeightByTimestamp(babylonClient.config.BitcoinRpc, queryParams.BlockTimestamp)
+	btcblockHeight, err := babylonClient.btcClient.GetBlockHeightByTimestamp(queryParams.BlockTimestamp)
 	if err != nil {
 		return false, err
 	}

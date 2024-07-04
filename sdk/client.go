@@ -11,6 +11,8 @@ import (
 	bbncfg "github.com/babylonchain/babylon/client/config"
 	sdkclient "github.com/cosmos/cosmos-sdk/client"
 	"go.uber.org/zap"
+
+	"github.com/babylonchain/babylon-da-sdk/btcclient"
 )
 
 const (
@@ -21,9 +23,9 @@ const (
 
 // Config defines configuration for the Babylon query client
 type Config struct {
-	ContractAddr string `mapstructure:"contract-addr"`
-	BitcoinRpc   string `mapstructure:"bitcoin-rpc"`
-	ChainType    int    `mapstructure:"chain-type"`
+	ContractAddr string 					   	`mapstructure:"contract-addr"`
+	ChainType    int    							`mapstructure:"chain-type"`
+	BTCConfig    *btcclient.BTCConfig `mapstructure:"btc-config"`
 }
 
 func (config *Config) getRpcAddr() (string, error) {
@@ -45,8 +47,9 @@ func (config *Config) getRpcAddr() (string, error) {
 // It only requires the client config to have `rpcAddr`, but not other fields
 // such as keyring, chain ID, etc..
 type BabylonQueryClient struct {
-	bbnClient *bbnclient.Client
 	config    *Config
+	bbnClient *bbnclient.Client
+	btcClient *btcclient.BTCClient
 }
 
 // NewClient creates a new babylonQueryClient according to the given config
@@ -74,9 +77,13 @@ func NewClient(config *Config) (*BabylonQueryClient, error) {
 		return nil, fmt.Errorf("failed to create Babylon client: %w", err)
 	}
 
+	// Create BTC client
+	btcClient, err := btcclient.NewBTCClient(config.BTCConfig, logger)
+
 	return &BabylonQueryClient{
 		bbnClient: bbnClient,
 		config:    config,
+		btcClient: btcClient,
 	}, nil
 }
 
