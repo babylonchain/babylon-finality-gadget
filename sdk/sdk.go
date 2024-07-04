@@ -2,6 +2,7 @@ package sdk
 
 import (
 	"encoding/json"
+	"strings"
 
 	btcstakingtypes "github.com/babylonchain/babylon/x/btcstaking/types"
 	sdkquerytypes "github.com/cosmos/cosmos-sdk/types/query"
@@ -206,6 +207,9 @@ func (babylonClient *BabylonQueryClient) QueryIsBlockBabylonFinalized(queryParam
 	if !isEnabled {
 		return true, nil
 	}
+
+	// trim prefix 0x for the L2 block hash
+	queryParams.BlockHash = strings.TrimPrefix(queryParams.BlockHash, "0x")
 
 	// get the consumer chain id
 	consumerId, err := babylonClient.queryConsumerId()
