@@ -48,17 +48,17 @@ func (config *Config) getRpcAddr() (string, error) {
 	}
 }
 
-// BabylonQueryClient is a client that can only perform queries to a Babylon node
+// BabylonFinalityGadgetClient is a client that can only perform queries to a Babylon node
 // It only requires the client config to have `rpcAddr`, but not other fields
 // such as keyring, chain ID, etc..
-type BabylonQueryClient struct {
+type BabylonFinalityGadgetClient struct {
 	config    *Config
 	bbnClient *bbnclient.Client
 	BtcClient BtcClient
 }
 
-// NewClient creates a new babylonQueryClient according to the given config
-func NewClient(config *Config) (*BabylonQueryClient, error) {
+// NewClient creates a new BabylonFinalityGadgetClient according to the given config
+func NewClient(config *Config) (*BabylonFinalityGadgetClient, error) {
 	rpcAddr, err := config.getRpcAddr()
 	if err != nil {
 		return nil, err
@@ -93,7 +93,7 @@ func NewClient(config *Config) (*BabylonQueryClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &BabylonQueryClient{
+	return &BabylonFinalityGadgetClient{
 		bbnClient: bbnClient,
 		config:    config,
 		BtcClient: btcClient,
@@ -101,7 +101,7 @@ func NewClient(config *Config) (*BabylonQueryClient, error) {
 }
 
 // querySmartContractState queries the smart contract state given the contract address and query data
-func (babylonClient *BabylonQueryClient) querySmartContractState(contractAddress string, queryData []byte) (*wasmtypes.QuerySmartContractStateResponse, error) {
+func (babylonClient *BabylonFinalityGadgetClient) querySmartContractState(contractAddress string, queryData []byte) (*wasmtypes.QuerySmartContractStateResponse, error) {
 	// hardcode the timeout to 20 seconds. We can expose it to the params once needed
 	timeout := 20 * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
