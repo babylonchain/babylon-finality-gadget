@@ -70,7 +70,7 @@ func (babylonClient *BabylonQueryClient) queryListOfVotedFinalityProviders(query
 		return nil, err
 	}
 
-	var votedFpPkHexList *[]string
+	votedFpPkHexList := &[]string{}
 	if err := json.Unmarshal(resp.Data, votedFpPkHexList); err != nil {
 		return nil, err
 	}
