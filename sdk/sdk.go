@@ -59,7 +59,7 @@ func createBlockVotersQueryData(queryParams *L2Block) ([]byte, error) {
 	return data, nil
 }
 
-func (babylonClient *BabylonQueryClient) queryListOfVotedFinalityProviders(queryParams *L2Block) ([]string, error) {
+func (babylonClient *BabylonQueryClient) queryListOfVotedFinalityProviders(queryParams *L2Block) (*[]string, error) {
 	queryData, err := createBlockVotersQueryData(queryParams)
 	if err != nil {
 		return nil, err
@@ -69,11 +69,9 @@ func (babylonClient *BabylonQueryClient) queryListOfVotedFinalityProviders(query
 	if err != nil {
 		return nil, err
 	}
-	if resp.Data == nil || string(resp.Data) == "null" {
-		return nil, nil
-	}
-	var votedFpPkHexList []string
-	if err := json.Unmarshal(resp.Data, &votedFpPkHexList); err != nil {
+
+	var votedFpPkHexList *[]string
+	if err := json.Unmarshal(resp.Data, votedFpPkHexList); err != nil {
 		return nil, err
 	}
 
@@ -254,7 +252,7 @@ func (babylonClient *BabylonQueryClient) QueryIsBlockBabylonFinalized(queryParam
 	}
 	// calculate voted voting power
 	var votedPower uint64 = 0
-	for _, key := range votedFpPks {
+	for _, key := range *votedFpPks {
 		if power, exists := allFpPower[key]; exists {
 			votedPower += power
 		}
