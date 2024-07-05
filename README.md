@@ -8,7 +8,7 @@ In the future, we will also move the CosmWasm contract code here.
 
 ## Dependencies
 
-The DA SDK requires a synced `bitcoind` node for querying the chain type and fetching blocks. Installation instructions can be found [here](https://github.com/babylonchain/staking-indexer/blob/dev/doc/bitcoind_setup.md).
+The DA SDK requires a BTC RPC client defined in https://github.com/btcsuite/btcd/tree/master/rpcclient. We wrap it in our own BTC Client to make it easier to use.
 
 ## Usages
 
