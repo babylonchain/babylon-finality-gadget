@@ -13,7 +13,12 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/babylonchain/babylon-da-sdk/btcclient"
+	"github.com/babylonchain/babylon-da-sdk/testutils"
 )
+
+type BtcClient interface {
+	GetBlockHeightByTimestamp(targetTimestamp uint64) (uint64, error)
+}
 
 const (
 	BabylonLocalnet = -1
@@ -49,7 +54,7 @@ func (config *Config) getRpcAddr() (string, error) {
 type BabylonQueryClient struct {
 	config    *Config
 	bbnClient *bbnclient.Client
-	BtcClient *btcclient.BTCClient
+	BtcClient BtcClient
 }
 
 // NewClient creates a new babylonQueryClient according to the given config
@@ -77,8 +82,14 @@ func NewClient(config *Config) (*BabylonQueryClient, error) {
 		return nil, fmt.Errorf("failed to create Babylon client: %w", err)
 	}
 
+	var btcClient BtcClient
 	// Create BTC client
-	btcClient, err := btcclient.NewBTCClient(config.BTCConfig, logger)
+	switch config.ChainType {
+	case BabylonLocalnet:
+		btcClient, err = testutils.NewMockBTCClient(config.BTCConfig, logger)
+	default:
+		btcClient, err = btcclient.NewBTCClient(config.BTCConfig, logger)
+	}
 	if err != nil {
 		return nil, err
 	}
