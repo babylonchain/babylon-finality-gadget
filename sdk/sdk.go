@@ -15,9 +15,9 @@ type L2Block struct {
 }
 
 type ContractQueryMsgs struct {
-	Config     *contractConfig `json:"config,omitempty"`
-	BlockVotes *blockVotes     `json:"block_votes,omitempty"`
-	IsEnabled  *isEnabledQuery `json:"is_enabled,omitempty"`
+	Config      *contractConfig `json:"config,omitempty"`
+	BlockVoters *blockVoters    `json:"block_voters,omitempty"`
+	IsEnabled   *isEnabledQuery `json:"is_enabled,omitempty"`
 }
 
 type contractConfig struct{}
@@ -27,12 +27,12 @@ type contractConfigResponse struct {
 	ActivatedHeight uint64 `json:"activated_height"`
 }
 
-type blockVotes struct {
+type blockVoters struct {
 	Hash   string `json:"hash"`
 	Height uint64 `json:"height"`
 }
 
-type blockVotesResponse struct {
+type blockVotersResponse struct {
 	BtcPkHexList []string `json:"fp_pubkey_hex_list"`
 }
 
@@ -49,9 +49,9 @@ func createConfigQueryData() ([]byte, error) {
 	return data, nil
 }
 
-func createBlockVotesQueryData(queryParams *L2Block) ([]byte, error) {
+func createBlockVotersQueryData(queryParams *L2Block) ([]byte, error) {
 	queryData := ContractQueryMsgs{
-		BlockVotes: &blockVotes{
+		BlockVoters: &blockVoters{
 			Height: queryParams.BlockHeight,
 			Hash:   queryParams.BlockHash,
 		},
@@ -64,7 +64,7 @@ func createBlockVotesQueryData(queryParams *L2Block) ([]byte, error) {
 }
 
 func (babylonClient *BabylonQueryClient) queryListOfVotedFinalityProviders(queryParams *L2Block) ([]string, error) {
-	queryData, err := createBlockVotesQueryData(queryParams)
+	queryData, err := createBlockVotersQueryData(queryParams)
 	if err != nil {
 		return nil, err
 	}
@@ -73,8 +73,10 @@ func (babylonClient *BabylonQueryClient) queryListOfVotedFinalityProviders(query
 	if err != nil {
 		return nil, err
 	}
-
-	var data blockVotesResponse
+	if resp.Data == nil || string(resp.Data) == "null" {
+		return nil, nil
+	}
+	var data blockVotersResponse
 	if err := json.Unmarshal(resp.Data, &data); err != nil {
 		return nil, err
 	}
@@ -251,7 +253,9 @@ func (babylonClient *BabylonQueryClient) QueryIsBlockBabylonFinalized(queryParam
 	if err != nil {
 		return false, err
 	}
-
+	if votedFpPks == nil {
+		return false, nil
+	}
 	// calculate voted voting power
 	var votedPower uint64 = 0
 	for _, key := range votedFpPks {
