@@ -32,10 +32,6 @@ type blockVoters struct {
 	Height uint64 `json:"height"`
 }
 
-type blockVotersResponse struct {
-	BtcPkHexList []string `json:"fp_pubkey_hex_list"`
-}
-
 type isEnabledQuery struct{}
 
 func createConfigQueryData() ([]byte, error) {
@@ -76,12 +72,12 @@ func (babylonClient *BabylonQueryClient) queryListOfVotedFinalityProviders(query
 	if resp.Data == nil || string(resp.Data) == "null" {
 		return nil, nil
 	}
-	var data blockVotersResponse
-	if err := json.Unmarshal(resp.Data, &data); err != nil {
+	var votedFpPkHexList []string
+	if err := json.Unmarshal(resp.Data, &votedFpPkHexList); err != nil {
 		return nil, err
 	}
 
-	return data.BtcPkHexList, nil
+	return votedFpPkHexList, nil
 }
 
 func (babylonClient *BabylonQueryClient) queryFpBtcPubKeys(consumerId string) ([]string, error) {

@@ -23,9 +23,9 @@ const (
 
 // Config defines configuration for the Babylon query client
 type Config struct {
-	ContractAddr string 					   	`mapstructure:"contract-addr"`
-	ChainType    int    							`mapstructure:"chain-type"`
 	BTCConfig    *btcclient.BTCConfig `mapstructure:"btc-config"`
+	ContractAddr string               `mapstructure:"contract-addr"`
+	ChainType    int                  `mapstructure:"chain-type"`
 }
 
 func (config *Config) getRpcAddr() (string, error) {
@@ -79,7 +79,9 @@ func NewClient(config *Config) (*BabylonQueryClient, error) {
 
 	// Create BTC client
 	btcClient, err := btcclient.NewBTCClient(config.BTCConfig, logger)
-
+	if err != nil {
+		return nil, err
+	}
 	return &BabylonQueryClient{
 		bbnClient: bbnClient,
 		config:    config,
