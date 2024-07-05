@@ -49,7 +49,7 @@ func (config *Config) getRpcAddr() (string, error) {
 type BabylonQueryClient struct {
 	config    *Config
 	bbnClient *bbnclient.Client
-	btcClient *btcclient.BTCClient
+	BtcClient *btcclient.BTCClient
 }
 
 // NewClient creates a new babylonQueryClient according to the given config
@@ -85,7 +85,7 @@ func NewClient(config *Config) (*BabylonQueryClient, error) {
 	return &BabylonQueryClient{
 		bbnClient: bbnClient,
 		config:    config,
-		btcClient: btcClient,
+		BtcClient: btcClient,
 	}, nil
 }
 
