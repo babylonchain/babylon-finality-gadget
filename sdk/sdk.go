@@ -2,6 +2,7 @@ package sdk
 
 import (
 	"encoding/json"
+	"strings"
 
 	btcstakingtypes "github.com/babylonchain/babylon/x/btcstaking/types"
 	sdkquerytypes "github.com/cosmos/cosmos-sdk/types/query"
@@ -14,9 +15,9 @@ type L2Block struct {
 }
 
 type ContractQueryMsgs struct {
-	Config     *contractConfig `json:"config,omitempty"`
-	BlockVotes *blockVotes     `json:"block_votes,omitempty"`
-	IsEnabled  *isEnabledQuery `json:"is_enabled,omitempty"`
+	Config      *contractConfig `json:"config,omitempty"`
+	BlockVoters *blockVoters    `json:"block_voters,omitempty"`
+	IsEnabled   *isEnabledQuery `json:"is_enabled,omitempty"`
 }
 
 type contractConfig struct{}
@@ -26,13 +27,9 @@ type contractConfigResponse struct {
 	ActivatedHeight uint64 `json:"activated_height"`
 }
 
-type blockVotes struct {
+type blockVoters struct {
 	Hash   string `json:"hash"`
 	Height uint64 `json:"height"`
-}
-
-type blockVotesResponse struct {
-	BtcPkHexList []string `json:"fp_pubkey_hex_list"`
 }
 
 type isEnabledQuery struct{}
@@ -48,9 +45,9 @@ func createConfigQueryData() ([]byte, error) {
 	return data, nil
 }
 
-func createBlockVotesQueryData(queryParams *L2Block) ([]byte, error) {
+func createBlockVotersQueryData(queryParams *L2Block) ([]byte, error) {
 	queryData := ContractQueryMsgs{
-		BlockVotes: &blockVotes{
+		BlockVoters: &blockVoters{
 			Height: queryParams.BlockHeight,
 			Hash:   queryParams.BlockHash,
 		},
@@ -62,8 +59,8 @@ func createBlockVotesQueryData(queryParams *L2Block) ([]byte, error) {
 	return data, nil
 }
 
-func (babylonClient *BabylonQueryClient) queryListOfVotedFinalityProviders(queryParams *L2Block) ([]string, error) {
-	queryData, err := createBlockVotesQueryData(queryParams)
+func (babylonClient *BabylonQueryClient) queryListOfVotedFinalityProviders(queryParams *L2Block) (*[]string, error) {
+	queryData, err := createBlockVotersQueryData(queryParams)
 	if err != nil {
 		return nil, err
 	}
@@ -73,12 +70,12 @@ func (babylonClient *BabylonQueryClient) queryListOfVotedFinalityProviders(query
 		return nil, err
 	}
 
-	var data blockVotesResponse
-	if err := json.Unmarshal(resp.Data, &data); err != nil {
+	votedFpPkHexList := &[]string{}
+	if err := json.Unmarshal(resp.Data, votedFpPkHexList); err != nil {
 		return nil, err
 	}
 
-	return data.BtcPkHexList, nil
+	return votedFpPkHexList, nil
 }
 
 func (babylonClient *BabylonQueryClient) queryFpBtcPubKeys(consumerId string) ([]string, error) {
@@ -207,6 +204,9 @@ func (babylonClient *BabylonQueryClient) QueryIsBlockBabylonFinalized(queryParam
 		return true, nil
 	}
 
+	// trim prefix 0x for the L2 block hash
+	queryParams.BlockHash = strings.TrimPrefix(queryParams.BlockHash, "0x")
+
 	// get the consumer chain id
 	consumerId, err := babylonClient.queryConsumerId()
 	if err != nil {
@@ -247,10 +247,12 @@ func (babylonClient *BabylonQueryClient) QueryIsBlockBabylonFinalized(queryParam
 	if err != nil {
 		return false, err
 	}
-
+	if votedFpPks == nil {
+		return false, nil
+	}
 	// calculate voted voting power
 	var votedPower uint64 = 0
-	for _, key := range votedFpPks {
+	for _, key := range *votedFpPks {
 		if power, exists := allFpPower[key]; exists {
 			votedPower += power
 		}
