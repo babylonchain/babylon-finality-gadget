@@ -2,6 +2,7 @@ package sdk
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 
 	btcstakingtypes "github.com/babylonchain/babylon/x/btcstaking/types"
@@ -191,6 +192,29 @@ func (babylonClient *BabylonFinalityGadgetClient) queryFpPower(fpPubkeyHex strin
 	}
 
 	return totalPower, nil
+}
+
+func (babylonClient *BabylonFinalityGadgetClient) QueryBlockRangeBabylonFinalized(queryBlocks []*L2Block) (uint64, error) {
+	if len(queryBlocks) == 0 {
+		return 0, ErrEmptyQueryBlocks
+	}
+
+	finalizedBlockHeight := uint64(0)
+	for _, block := range queryBlocks {
+		isFinalized, err := babylonClient.QueryIsBlockBabylonFinalized(block)
+		if err != nil && !errors.Is(err, ErrNoFpHasVotingPower) {
+			return 0, err
+		}
+		if isFinalized {
+			finalizedBlockHeight = block.BlockHeight
+		} else {
+			if block.BlockHeight > 0 {
+				finalizedBlockHeight = block.BlockHeight - 1
+			}
+			break
+		}
+	}
+	return finalizedBlockHeight, nil
 }
 
 func (babylonClient *BabylonFinalityGadgetClient) QueryIsBlockBabylonFinalized(queryParams *L2Block) (bool, error) {
