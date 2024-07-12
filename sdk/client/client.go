@@ -1,19 +1,18 @@
-package sdk
+package client
 
 import (
 	"fmt"
-	"time"
 
-	"context"
-
-	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
-	bbnclient "github.com/babylonchain/babylon/client/client"
 	bbncfg "github.com/babylonchain/babylon/client/config"
-	sdkclient "github.com/cosmos/cosmos-sdk/client"
 	"go.uber.org/zap"
 
-	"github.com/babylonchain/babylon-finality-gadget/btcclient"
+	"github.com/babylonchain/babylon-finality-gadget/sdk/btcclient"
 	sdkconfig "github.com/babylonchain/babylon-finality-gadget/sdk/config"
+
+	babylonClient "github.com/babylonchain/babylon/client/client"
+
+	"github.com/babylonchain/babylon-finality-gadget/sdk/bbnclient"
+	"github.com/babylonchain/babylon-finality-gadget/sdk/cwclient"
 	"github.com/babylonchain/babylon-finality-gadget/testutils"
 )
 
@@ -27,6 +26,7 @@ type BtcClient interface {
 type SdkClient struct {
 	config    *sdkconfig.Config
 	bbnClient *bbnclient.Client
+	cwClient  *cwclient.Client
 	BtcClient BtcClient
 }
 
@@ -47,7 +47,7 @@ func NewClient(config *sdkconfig.Config) (*SdkClient, error) {
 
 	// Note: We can just ignore the below info which is printed by bbnclient.New
 	// service injective.evm.v1beta1.Msg does not have cosmos.msg.v1.service proto annotation
-	bbnClient, err := bbnclient.New(
+	babylonClient, err := babylonClient.New(
 		&bbnConfig,
 		logger,
 	)
@@ -66,26 +66,16 @@ func NewClient(config *sdkconfig.Config) (*SdkClient, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	cwClient := cwclient.Client{
+		Client:       babylonClient.QueryClient.RPCClient,
+		ContractAddr: config.ContractAddr,
+	}
+
 	return &SdkClient{
-		bbnClient: bbnClient,
 		config:    config,
+		bbnClient: &bbnclient.Client{QueryClient: babylonClient.QueryClient},
+		cwClient:  &cwClient,
 		BtcClient: btcClient,
 	}, nil
-}
-
-// querySmartContractState queries the smart contract state given the contract address and query data
-func (babylonClient *SdkClient) querySmartContractState(contractAddress string, queryData []byte) (*wasmtypes.QuerySmartContractStateResponse, error) {
-	// hardcode the timeout to 20 seconds. We can expose it to the params once needed
-	timeout := 20 * time.Second
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	sdkClientCtx := sdkclient.Context{Client: babylonClient.bbnClient.RPCClient}
-	wasmQueryClient := wasmtypes.NewQueryClient(sdkClientCtx)
-
-	req := &wasmtypes.QuerySmartContractStateRequest{
-		Address:   contractAddress,
-		QueryData: queryData,
-	}
-	return wasmQueryClient.SmartContractState(ctx, req)
 }
