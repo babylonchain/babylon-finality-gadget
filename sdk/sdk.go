@@ -59,7 +59,7 @@ func createBlockVotersQueryData(queryParams *L2Block) ([]byte, error) {
 	return data, nil
 }
 
-func (babylonClient *BabylonFinalityGadgetClient) QueryListOfVotedFinalityProviders(queryParams *L2Block) ([]string, error) {
+func (babylonClient *SdkClient) QueryListOfVotedFinalityProviders(queryParams *L2Block) ([]string, error) {
 	queryData, err := createBlockVotersQueryData(queryParams)
 	if err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func (babylonClient *BabylonFinalityGadgetClient) QueryListOfVotedFinalityProvid
 	return *votedFpPkHexList, nil
 }
 
-func (babylonClient *BabylonFinalityGadgetClient) queryFpBtcPubKeys(consumerId string) ([]string, error) {
+func (babylonClient *SdkClient) queryFpBtcPubKeys(consumerId string) ([]string, error) {
 	pagination := &sdkquerytypes.PageRequest{}
 	resp, err := babylonClient.bbnClient.QueryClient.QueryConsumerFinalityProviders(consumerId, pagination)
 	if err != nil {
@@ -93,7 +93,7 @@ func (babylonClient *BabylonFinalityGadgetClient) queryFpBtcPubKeys(consumerId s
 	return pkArr, nil
 }
 
-func (babylonClient *BabylonFinalityGadgetClient) queryConsumerId() (string, error) {
+func (babylonClient *SdkClient) queryConsumerId() (string, error) {
 	queryData, err := createConfigQueryData()
 	if err != nil {
 		return "", err
@@ -112,7 +112,7 @@ func (babylonClient *BabylonFinalityGadgetClient) queryConsumerId() (string, err
 	return data.ConsumerId, nil
 }
 
-func (babylonClient *BabylonFinalityGadgetClient) queryMultiFpPowerAtHeight(fpPubkeyHexList []string, btcHeight uint64) (map[string]uint64, error) {
+func (babylonClient *SdkClient) queryMultiFpPowerAtHeight(fpPubkeyHexList []string, btcHeight uint64) (map[string]uint64, error) {
 	fpPowerMap := make(map[string]uint64)
 
 	for _, fpPubkeyHex := range fpPubkeyHexList {
@@ -128,7 +128,7 @@ func (babylonClient *BabylonFinalityGadgetClient) queryMultiFpPowerAtHeight(fpPu
 
 // we implemented exact logic as in
 // https://github.com/babylonchain/babylon-private/blob/c5a8d317091e2965e20ea56fa10e98d34aaa3547/x/btcstaking/types/btc_delegation.go#L111-L119
-func (babylonClient *BabylonFinalityGadgetClient) isDelegationEligible(btcDel *btcstakingtypes.BTCDelegationResponse, btcHeight uint64) (bool, error) {
+func (babylonClient *SdkClient) isDelegationEligible(btcDel *btcstakingtypes.BTCDelegationResponse, btcHeight uint64) (bool, error) {
 	btccheckpointParams, err := babylonClient.bbnClient.QueryClient.BTCCheckpointParams()
 	if err != nil {
 		return false, err
@@ -162,7 +162,7 @@ func (babylonClient *BabylonFinalityGadgetClient) isDelegationEligible(btcDel *b
 	return true, nil
 }
 
-func (babylonClient *BabylonFinalityGadgetClient) queryFpPower(fpPubkeyHex string, btcHeight uint64) (uint64, error) {
+func (babylonClient *SdkClient) queryFpPower(fpPubkeyHex string, btcHeight uint64) (uint64, error) {
 	totalPower := uint64(0)
 	pagination := &sdkquerytypes.PageRequest{}
 	// queries the BTCStaking module for all delegations of a finality provider
@@ -193,7 +193,7 @@ func (babylonClient *BabylonFinalityGadgetClient) queryFpPower(fpPubkeyHex strin
 	return totalPower, nil
 }
 
-func (babylonClient *BabylonFinalityGadgetClient) QueryIsBlockBabylonFinalized(queryParams *L2Block) (bool, error) {
+func (babylonClient *SdkClient) QueryIsBlockBabylonFinalized(queryParams *L2Block) (bool, error) {
 	// check if the finality gadget is enabled
 	// if not, always return true to pass through op derivation pipeline
 	isEnabled, err := babylonClient.queryIsEnabled()
@@ -276,7 +276,7 @@ func createIsEnabledQueryData() ([]byte, error) {
 	return data, nil
 }
 
-func (babylonClient *BabylonFinalityGadgetClient) queryIsEnabled() (bool, error) {
+func (babylonClient *SdkClient) queryIsEnabled() (bool, error) {
 	queryData, err := createIsEnabledQueryData()
 	if err != nil {
 		return false, err
