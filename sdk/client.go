@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/babylonchain/babylon-finality-gadget/btcclient"
+	sdkconfig "github.com/babylonchain/babylon-finality-gadget/sdk/config"
 	"github.com/babylonchain/babylon-finality-gadget/testutils"
 )
 
@@ -20,46 +21,18 @@ type BtcClient interface {
 	GetBlockHeightByTimestamp(targetTimestamp uint64) (uint64, error)
 }
 
-const (
-	BabylonLocalnet = -1
-	BabylonTestnet  = 0
-	BabylonMainnet  = 1
-)
-
-// Config defines configuration for the Babylon query client
-type Config struct {
-	BTCConfig    *btcclient.BTCConfig `mapstructure:"btc-config"`
-	ContractAddr string               `mapstructure:"contract-addr"`
-	ChainType    int                  `mapstructure:"chain-type"`
-}
-
-func (config *Config) getRpcAddr() (string, error) {
-	switch config.ChainType {
-	case BabylonLocalnet:
-		// only for the e2e test
-		return "http://127.0.0.1:26657", nil
-	case BabylonTestnet:
-		return "https://rpc-euphrates.devnet.babylonchain.io/", nil
-	// TODO: replace with babylon RPCs when QuerySmartContractStateRequest query is supported
-	case BabylonMainnet:
-		return "https://rpc-euphrates.devnet.babylonchain.io/", nil
-	default:
-		return "", fmt.Errorf("unrecognized chain type: %d", config.ChainType)
-	}
-}
-
 // BabylonFinalityGadgetClient is a client that can only perform queries to a Babylon node
 // It only requires the client config to have `rpcAddr`, but not other fields
 // such as keyring, chain ID, etc..
 type BabylonFinalityGadgetClient struct {
-	config    *Config
+	config    *sdkconfig.Config
 	bbnClient *bbnclient.Client
 	BtcClient BtcClient
 }
 
 // NewClient creates a new BabylonFinalityGadgetClient according to the given config
-func NewClient(config *Config) (*BabylonFinalityGadgetClient, error) {
-	rpcAddr, err := config.getRpcAddr()
+func NewClient(config *sdkconfig.Config) (*BabylonFinalityGadgetClient, error) {
+	rpcAddr, err := config.GetRpcAddr()
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +58,7 @@ func NewClient(config *Config) (*BabylonFinalityGadgetClient, error) {
 	var btcClient BtcClient
 	// Create BTC client
 	switch config.ChainType {
-	case BabylonLocalnet:
+	case sdkconfig.BabylonLocalnet:
 		btcClient, err = testutils.NewMockBTCClient(config.BTCConfig, logger)
 	default:
 		btcClient, err = btcclient.NewBTCClient(config.BTCConfig, logger)
