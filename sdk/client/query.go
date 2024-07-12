@@ -7,7 +7,9 @@ import (
 	"github.com/babylonchain/babylon-finality-gadget/sdk/cwclient"
 )
 
-func (sdkClient *SdkClient) QueryIsBlockBabylonFinalized(queryParams *cwclient.L2Block) (bool, error) {
+func (sdkClient *SdkClient) QueryIsBlockBabylonFinalized(
+	queryParams *cwclient.L2Block,
+) (bool, error) {
 	// check if the finality gadget is enabled
 	// if not, always return true to pass through op derivation pipeline
 	isEnabled, err := sdkClient.cwClient.QueryIsEnabled()
@@ -93,7 +95,9 @@ func (sdkClient *SdkClient) QueryIsBlockBabylonFinalized(queryParams *cwclient.L
  * Note: caller needs to make sure the given queryBlocks are consecutive (we don't check hashes inside this method) and
  * start from low to high
  */
-func (sdkClient *SdkClient) QueryBlockRangeBabylonFinalized(queryBlocks []*cwclient.L2Block) (*uint64, error) {
+func (sdkClient *SdkClient) QueryBlockRangeBabylonFinalized(
+	queryBlocks []*cwclient.L2Block,
+) (*uint64, error) {
 	if len(queryBlocks) == 0 {
 		return nil, fmt.Errorf("no blocks provided")
 	}
