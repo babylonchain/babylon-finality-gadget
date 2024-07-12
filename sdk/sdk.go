@@ -219,9 +219,6 @@ func (babylonClient *BabylonFinalityGadgetClient) QueryBlockRangeBabylonFinalize
 			break
 		}
 	}
-	if finalizedBlockHeight == nil {
-		return nil, fmt.Errorf("no block in the range is finalized")
-	}
 	return finalizedBlockHeight, nil
 }
 
