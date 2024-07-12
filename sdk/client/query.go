@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/babylonchain/babylon-finality-gadget/sdk/cwclient"
@@ -78,4 +79,41 @@ func (sdkClient *SdkClient) QueryIsBlockBabylonFinalized(queryParams *cwclient.L
 	return true, nil
 }
 
-// TODO: add QueryVP
+/* QueryBlockRangeBabylonFinalized searches for a row of consecutive finalized blocks in the block range, and returns
+ * the last finalized block height
+ *
+ * Example: if give block range 1-10, and block 1-5 are finalized, and block 6-10 are not finalized, then return 5
+ *
+ * - if no block in the range is finalized, return (nil, nil)
+ * - else, return the height of the last found consecutive finalized block, return error if any
+ *
+ * Example: if give block range 1-10, and block 1-5 are finalized, and when querying block 6 we meet an error, then
+ * return (5, error)
+ *
+ * Note: caller needs to make sure the given queryBlocks are consecutive (we don't check hashes inside this method) and
+ * start from low to high
+ */
+func (sdkClient *SdkClient) QueryBlockRangeBabylonFinalized(queryBlocks []*cwclient.L2Block) (*uint64, error) {
+	if len(queryBlocks) == 0 {
+		return nil, fmt.Errorf("no blocks provided")
+	}
+	// check if the blocks are consecutive
+	for i := 1; i < len(queryBlocks); i++ {
+		if queryBlocks[i].BlockHeight != queryBlocks[i-1].BlockHeight+1 {
+			return nil, fmt.Errorf("blocks are not consecutive")
+		}
+	}
+	var finalizedBlockHeight *uint64
+	for _, block := range queryBlocks {
+		isFinalized, err := sdkClient.QueryIsBlockBabylonFinalized(block)
+		if err != nil {
+			return nil, err
+		}
+		if isFinalized {
+			finalizedBlockHeight = &block.BlockHeight
+		} else {
+			break
+		}
+	}
+	return finalizedBlockHeight, nil
+}
