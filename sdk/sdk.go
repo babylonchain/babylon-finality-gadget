@@ -197,6 +197,9 @@ func (babylonClient *BabylonFinalityGadgetClient) queryFpPower(fpPubkeyHex strin
 // QueryBlockRangeBabylonFinalized find the finalized block in the block range
 // if no block in the range is finalized, return nil
 // if yes, return the height of the last finalized block in the range
+// Note:
+// 1. make sure the given queryBlocks are consecutive and start from the lowest block
+// 2. the caller need to make sure the BlockHash in queryBlocks are consecutive
 func (babylonClient *BabylonFinalityGadgetClient) QueryBlockRangeBabylonFinalized(queryBlocks []*L2Block) (*uint64, error) {
 	if len(queryBlocks) == 0 {
 		return nil, fmt.Errorf("no blocks provided")
