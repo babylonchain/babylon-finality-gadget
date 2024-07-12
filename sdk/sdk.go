@@ -2,7 +2,7 @@ package sdk
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"strings"
 
 	btcstakingtypes "github.com/babylonchain/babylon/x/btcstaking/types"
@@ -194,25 +194,33 @@ func (babylonClient *BabylonFinalityGadgetClient) queryFpPower(fpPubkeyHex strin
 	return totalPower, nil
 }
 
-func (babylonClient *BabylonFinalityGadgetClient) QueryBlockRangeBabylonFinalized(queryBlocks []*L2Block) (uint64, error) {
+// QueryBlockRangeBabylonFinalized find the finalized block in the block range
+// if no block in the range is finalized, return nil
+// if yes, return the height of the last finalized block in the range
+func (babylonClient *BabylonFinalityGadgetClient) QueryBlockRangeBabylonFinalized(queryBlocks []*L2Block) (*uint64, error) {
 	if len(queryBlocks) == 0 {
-		return 0, ErrEmptyQueryBlocks
+		return nil, fmt.Errorf("no blocks provided")
 	}
-
-	finalizedBlockHeight := uint64(0)
+	// check if the blocks are consecutive
+	for i := 1; i < len(queryBlocks); i++ {
+		if queryBlocks[i].BlockHeight != queryBlocks[i-1].BlockHeight+1 {
+			return nil, fmt.Errorf("blocks are not consecutive")
+		}
+	}
+	var finalizedBlockHeight *uint64
 	for _, block := range queryBlocks {
 		isFinalized, err := babylonClient.QueryIsBlockBabylonFinalized(block)
-		if err != nil && !errors.Is(err, ErrNoFpHasVotingPower) {
-			return 0, err
+		if err != nil {
+			return nil, err
 		}
 		if isFinalized {
-			finalizedBlockHeight = block.BlockHeight
+			finalizedBlockHeight = &block.BlockHeight
 		} else {
-			if block.BlockHeight > 0 {
-				finalizedBlockHeight = block.BlockHeight - 1
-			}
 			break
 		}
+	}
+	if finalizedBlockHeight == nil {
+		return nil, fmt.Errorf("no block in the range is finalized")
 	}
 	return finalizedBlockHeight, nil
 }
