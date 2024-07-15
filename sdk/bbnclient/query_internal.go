@@ -4,7 +4,7 @@ import btcstakingtypes "github.com/babylonchain/babylon/x/btcstaking/types"
 
 // we implemented exact logic as in
 // https://github.com/babylonchain/babylon-private/blob/c5a8d317091e2965e20ea56fa10e98d34aaa3547/x/btcstaking/types/btc_delegation.go#L111-L119
-func (bbnClient *Client) isDelegationEligible(
+func (bbnClient *Client) isDelegationActive(
 	btcDel *btcstakingtypes.BTCDelegationResponse,
 	btcHeight uint64,
 ) (bool, error) {

@@ -37,12 +37,12 @@ func (bbnClient *Client) QueryFpPower(fpPubkeyHex string, btcHeight uint64) (uin
 		// btcDels contains all the queried BTC delegations
 		for _, btcDels := range resp.BtcDelegatorDelegations {
 			for _, btcDel := range btcDels.Dels {
-				// check the eligbility of delegation
-				isEligible, err := bbnClient.isDelegationEligible(btcDel, btcHeight)
+				// check whether the delegation is active
+				isActive, err := bbnClient.isDelegationActive(btcDel, btcHeight)
 				if err != nil {
 					return 0, err
 				}
-				if isEligible {
+				if isActive {
 					totalPower += btcDel.TotalSat
 				}
 			}

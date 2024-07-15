@@ -8,7 +8,14 @@ import (
 
 type Client struct {
 	rpcclient.Client
-	ContractAddr string
+	contractAddr string
+}
+
+func NewClient(rpcClient rpcclient.Client, contractAddr string) *Client {
+	return &Client{
+		Client:       rpcClient,
+		contractAddr: contractAddr,
+	}
 }
 
 func (cwClient *Client) QueryListOfVotedFinalityProviders(

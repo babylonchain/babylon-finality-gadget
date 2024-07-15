@@ -52,7 +52,7 @@ func NewClient(config *sdkconfig.Config) (*SdkClient, error) {
 
 	var btcClient btcclient.BTCClientInterface
 	// Create BTC client
-	switch config.ChainType {
+	switch config.ChainID {
 	case sdkconfig.BabylonLocalnet:
 		btcClient, err = testutils.NewMockBTCClient(config.BTCConfig, logger)
 	default:
@@ -62,14 +62,11 @@ func NewClient(config *sdkconfig.Config) (*SdkClient, error) {
 		return nil, err
 	}
 
-	cwClient := cwclient.Client{
-		Client:       babylonClient.QueryClient.RPCClient,
-		ContractAddr: config.ContractAddr,
-	}
+	cwClient := cwclient.NewClient(babylonClient.QueryClient.RPCClient, config.ContractAddr)
 
 	return &SdkClient{
 		bbnClient: &bbnclient.Client{QueryClient: babylonClient.QueryClient},
-		cwClient:  &cwClient,
+		cwClient:  cwClient,
 		btcClient: btcClient,
 	}, nil
 }

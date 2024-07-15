@@ -9,6 +9,9 @@ import (
 	cosmosclient "github.com/cosmos/cosmos-sdk/client"
 )
 
+// hardcode the timeout to 20 seconds. We can expose it to the params once needed
+const DefaultTimeout = 20 * time.Second
+
 func createBlockVotersQueryData(queryParams *L2Block) ([]byte, error) {
 	queryData := ContractQueryMsgs{
 		BlockVoters: &blockVotersQuery{
@@ -68,16 +71,14 @@ func createIsEnabledQueryData() ([]byte, error) {
 func (cwClient *Client) querySmartContractState(
 	queryData []byte,
 ) (*wasmtypes.QuerySmartContractStateResponse, error) {
-	// hardcode the timeout to 20 seconds. We can expose it to the params once needed
-	timeout := 20 * time.Second
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
 
 	sdkClientCtx := cosmosclient.Context{Client: cwClient.Client}
 	wasmQueryClient := wasmtypes.NewQueryClient(sdkClientCtx)
 
 	req := &wasmtypes.QuerySmartContractStateRequest{
-		Address:   cwClient.ContractAddr,
+		Address:   cwClient.contractAddr,
 		QueryData: queryData,
 	}
 	return wasmQueryClient.SmartContractState(ctx, req)

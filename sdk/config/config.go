@@ -7,29 +7,36 @@ import (
 )
 
 const (
-	BabylonLocalnet = -1
-	BabylonTestnet  = 0
-	BabylonMainnet  = 1
+	BabylonLocalnet = "chain-test"
+	BabylonDevnet   = "euphrates-0.2.0"
 )
 
 // Config defines configuration for the Babylon query client
 type Config struct {
-	BTCConfig    *btcclient.BTCConfig `mapstructure:"btc-config"`
-	ContractAddr string               `mapstructure:"contract-addr"`
-	ChainType    int                  `mapstructure:"chain-type"`
+	BTCConfig    *btcclient.BTCConfig
+	ContractAddr string // CosmWasm contract address
+	// TODO: add Config.Validate() to query chain ID (i.e. /status) from RPCAddr and compare
+	ChainID string // Chain ID of the Babylon chain (e.g. devnet, testnet, mainnet)
+	RPCAddr string // RPC address of the Babylon chain
 }
 
 func (config *Config) GetRpcAddr() (string, error) {
-	switch config.ChainType {
-	case BabylonLocalnet:
-		// only for the e2e test
+	if config.RPCAddr != "" {
+		return config.RPCAddr, nil
+	}
+	return config.getDefaultRpcAddr()
+}
+
+func (config *Config) getDefaultRpcAddr() (string, error) {
+	switch config.ChainID {
+	case "chain-test":
+		// for the e2e test
 		return "http://127.0.0.1:26657", nil
-	case BabylonTestnet:
+	case "euphrates-0.2.0":
 		return "https://rpc-euphrates.devnet.babylonchain.io/", nil
 	// TODO: replace with babylon RPCs when QuerySmartContractStateRequest query is supported
-	case BabylonMainnet:
-		return "https://rpc-euphrates.devnet.babylonchain.io/", nil
+	// TODO: add mainnet RPCs when available
 	default:
-		return "", fmt.Errorf("unrecognized chain type: %d", config.ChainType)
+		return "", fmt.Errorf("unrecognized chain id: %s", config.ChainID)
 	}
 }

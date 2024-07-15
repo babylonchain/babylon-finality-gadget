@@ -7,6 +7,22 @@ import (
 	"github.com/babylonchain/babylon-finality-gadget/sdk/cwclient"
 )
 
+/* QueryIsBlockBabylonFinalized checks if the given L2 block is finalized by the Babylon finality gadget
+ *
+ * - if the finality gadget is not enabled, always return true
+ * - else, check if the given L2 block is finalized
+ * - return true if finalized, false if not finalized, and error if any
+ *
+ * - to check if the block is finalized, we need to:
+ *   - get the consumer chain id
+ *   - get all the FPs pubkey for the consumer chain
+ *   - convert the L2 block timestamp to BTC height
+ *   - get all FPs voting power at this BTC height
+ *   - calculate total voting power
+ *   - get all FPs that voted this L2 block with the same height and hash
+ *   - calculate voted voting power
+ *   - check if the voted voting power is more than 2/3 of the total voting power
+ */
 func (sdkClient *SdkClient) QueryIsBlockBabylonFinalized(
 	queryParams *cwclient.L2Block,
 ) (bool, error) {
