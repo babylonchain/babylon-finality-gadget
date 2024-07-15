@@ -27,7 +27,7 @@ type SdkClient struct {
 	config    *sdkconfig.Config
 	bbnClient *bbnclient.Client
 	cwClient  *cwclient.Client
-	BtcClient BtcClient
+	btcClient BtcClient
 }
 
 // NewClient creates a new BabylonFinalityGadgetClient according to the given config
@@ -57,7 +57,7 @@ func NewClient(config *sdkconfig.Config) (*SdkClient, error) {
 
 	var btcClient BtcClient
 	// Create BTC client
-	switch config.ChainType {
+	switch config.ChainID {
 	case sdkconfig.BabylonLocalnet:
 		btcClient, err = testutils.NewMockBTCClient(config.BTCConfig, logger)
 	default:
@@ -67,15 +67,12 @@ func NewClient(config *sdkconfig.Config) (*SdkClient, error) {
 		return nil, err
 	}
 
-	cwClient := cwclient.Client{
-		Client:       babylonClient.QueryClient.RPCClient,
-		ContractAddr: config.ContractAddr,
-	}
+	cwClient := cwclient.NewClient(babylonClient.QueryClient.RPCClient, config.ContractAddr)
 
 	return &SdkClient{
 		config:    config,
 		bbnClient: &bbnclient.Client{QueryClient: babylonClient.QueryClient},
-		cwClient:  &cwClient,
-		BtcClient: btcClient,
+		cwClient:  cwClient,
+		btcClient: btcClient,
 	}, nil
 }
