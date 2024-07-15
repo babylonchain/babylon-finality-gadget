@@ -36,7 +36,7 @@ func (sdkClient *SdkClient) QueryIsBlockBabylonFinalized(
 	}
 
 	// convert the L2 timestamp to BTC height
-	btcblockHeight, err := sdkClient.BtcClient.GetBlockHeightByTimestamp(queryParams.BlockTimestamp)
+	btcblockHeight, err := sdkClient.btcClient.GetBlockHeightByTimestamp(queryParams.BlockTimestamp)
 	if err != nil {
 		return false, err
 	}

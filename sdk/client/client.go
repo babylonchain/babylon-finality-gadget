@@ -16,18 +16,13 @@ import (
 	"github.com/babylonchain/babylon-finality-gadget/testutils"
 )
 
-type BtcClient interface {
-	GetBlockHeightByTimestamp(targetTimestamp uint64) (uint64, error)
-}
-
 // SdkClient is a client that can only perform queries to a Babylon node
 // It only requires the client config to have `rpcAddr`, but not other fields
 // such as keyring, chain ID, etc..
 type SdkClient struct {
-	config    *sdkconfig.Config
-	bbnClient *bbnclient.Client
-	cwClient  *cwclient.Client
-	BtcClient BtcClient
+	bbnClient bbnclient.BBNClientInterface
+	cwClient  cwclient.CosmWasmClientInterface
+	btcClient btcclient.BTCClientInterface
 }
 
 // NewClient creates a new BabylonFinalityGadgetClient according to the given config
@@ -55,7 +50,7 @@ func NewClient(config *sdkconfig.Config) (*SdkClient, error) {
 		return nil, fmt.Errorf("failed to create Babylon client: %w", err)
 	}
 
-	var btcClient BtcClient
+	var btcClient btcclient.BTCClientInterface
 	// Create BTC client
 	switch config.ChainType {
 	case sdkconfig.BabylonLocalnet:
@@ -73,9 +68,8 @@ func NewClient(config *sdkconfig.Config) (*SdkClient, error) {
 	}
 
 	return &SdkClient{
-		config:    config,
 		bbnClient: &bbnclient.Client{QueryClient: babylonClient.QueryClient},
 		cwClient:  &cwClient,
-		BtcClient: btcClient,
+		btcClient: btcClient,
 	}, nil
 }
