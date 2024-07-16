@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/babylonchain/babylon-finality-gadget/sdk/cwclient"
@@ -23,14 +24,14 @@ func TestFinalityGadgetDisabled(t *testing.T) {
 	}
 
 	// check QueryIsBlockBabylonFinalized always returns true when finality gadget is not enabled
-	res, err := mockSdkClient.QueryIsBlockBabylonFinalized(nil)
+	res, err := mockSdkClient.QueryIsBlockBabylonFinalized(cwclient.L2Block{})
 	require.NoError(t, err)
 	require.True(t, res)
 }
 
 func TestQueryIsBlockBabylonFinalized(t *testing.T) {
-	queryParams := &cwclient.L2Block{
-		BlockHash:      "0x123",
+	queryParams := cwclient.L2Block{
+		BlockHash:      "d4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3",
 		BlockHeight:    123,
 		BlockTimestamp: 12345,
 	}
@@ -75,6 +76,9 @@ func TestQueryIsBlockBabylonFinalized(t *testing.T) {
 		},
 	}
 
+	fmt.Println("before test loop")
+	fmt.Println(queryParams.BlockHash)
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctl := gomock.NewController(t)
@@ -83,14 +87,28 @@ func TestQueryIsBlockBabylonFinalized(t *testing.T) {
 			mockCwClient := mocks.NewMockCosmWasmClientInterface(ctl)
 			mockCwClient.EXPECT().QueryIsEnabled().Return(true, nil).Times(1)
 			mockCwClient.EXPECT().QueryConsumerId().Return(consumerChainID, nil).Times(1)
-			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(queryParams).Return(tc.votedProviders, nil).Times(1)
+			fmt.Println("in test loop before mock")
+			fmt.Println(queryParams.BlockHash)
+			mockCwClient.EXPECT().
+				QueryListOfVotedFinalityProviders(&queryParams).
+				Return(tc.votedProviders, nil).
+				Times(1)
 
 			mockBTCClient := mocks.NewMockBTCClientInterface(ctl)
-			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(queryParams.BlockTimestamp).Return(BTCHeight, nil).Times(1)
+			mockBTCClient.EXPECT().
+				GetBlockHeightByTimestamp(queryParams.BlockTimestamp).
+				Return(BTCHeight, nil).
+				Times(1)
 
 			mockBBNClient := mocks.NewMockBBNClientInterface(ctl)
-			mockBBNClient.EXPECT().QueryAllFpBtcPubKeys(consumerChainID).Return(tc.allFpPks, nil).Times(1)
-			mockBBNClient.EXPECT().QueryMultiFpPower(tc.allFpPks, BTCHeight).Return(tc.fpPowers, nil).Times(1)
+			mockBBNClient.EXPECT().
+				QueryAllFpBtcPubKeys(consumerChainID).
+				Return(tc.allFpPks, nil).
+				Times(1)
+			mockBBNClient.EXPECT().
+				QueryMultiFpPower(tc.allFpPks, BTCHeight).
+				Return(tc.fpPowers, nil).
+				Times(1)
 
 			mockSdkClient := &SdkClient{
 				cwClient:  mockCwClient,
