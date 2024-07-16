@@ -40,9 +40,9 @@ func TestQueryIsBlockBabylonFinalized(t *testing.T) {
 
 	testCases := []struct {
 		name           string
+		fpPowers       map[string]uint64
 		allFpPks       []string
 		votedProviders []string
-		fpPowers       map[string]uint64
 		expectResult   bool
 	}{
 		{
