@@ -9,12 +9,12 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestTestQueryIsBlockBabylonFinalizedFinalityGadgetDisabled(t *testing.T) {
+func TestFinalityGadgetDisabled(t *testing.T) {
 	ctl := gomock.NewController(t)
 
 	// mock CwClient
 	mockCwClient := mocks.NewMockCosmWasmClientInterface(ctl)
-	mockCwClient.EXPECT().QueryIsEnabled().Return(false, nil).AnyTimes()
+	mockCwClient.EXPECT().QueryIsEnabled().Return(false, nil).Times(1)
 
 	mockSdkClient := &SdkClient{
 		cwClient:  mockCwClient,
@@ -29,38 +29,78 @@ func TestTestQueryIsBlockBabylonFinalizedFinalityGadgetDisabled(t *testing.T) {
 }
 
 func TestQueryIsBlockBabylonFinalized(t *testing.T) {
-	ctl := gomock.NewController(t)
-
 	queryParams := &cwclient.L2Block{
 		BlockHash:      "0x123",
 		BlockHeight:    123,
 		BlockTimestamp: 12345,
 	}
 
-	// mock CwClient
-	mockCwClient := mocks.NewMockCosmWasmClientInterface(ctl)
-	mockCwClient.EXPECT().QueryIsEnabled().Return(true, nil).AnyTimes()
 	const consumerChainID = "consumer-chain-id"
-	mockCwClient.EXPECT().QueryConsumerId().Return(consumerChainID, nil).AnyTimes()
-	mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(queryParams).Return([]string{"pk1", "pk2"}, nil).AnyTimes()
-
-	// mock BTCClient
-	mockBTCClient := mocks.NewMockBTCClientInterface(ctl)
 	const BTCHeight = uint64(111)
-	mockBTCClient.EXPECT().GetBlockHeightByTimestamp(queryParams.BlockTimestamp).Return(BTCHeight, nil).AnyTimes()
 
-	// mock BBNClient
-	mockBBNClient := mocks.NewMockBBNClientInterface(ctl)
-	mockBBNClient.EXPECT().QueryAllFpBtcPubKeys(consumerChainID).Return([]string{"pk1", "pk2"}, nil).AnyTimes()
-	mockBBNClient.EXPECT().QueryMultiFpPower([]string{"pk1", "pk2"}, BTCHeight).Return(map[string]uint64{"pk1": 50, "pk2": 150}, nil).AnyTimes()
-
-	mockSdkClient := &SdkClient{
-		cwClient:  mockCwClient,
-		bbnClient: mockBBNClient,
-		btcClient: mockBTCClient,
+	testCases := []struct {
+		name           string
+		allFpPks       []string
+		votedProviders []string
+		fpPowers       map[string]uint64
+		expectResult   bool
+	}{
+		{
+			name:           "25% votes, expects false",
+			allFpPks:       []string{"pk1", "pk2"},
+			votedProviders: []string{"pk1"},
+			fpPowers:       map[string]uint64{"pk1": 100, "pk2": 300},
+			expectResult:   false,
+		},
+		{
+			name:           "75% votes, expects true",
+			allFpPks:       []string{"pk1", "pk2"},
+			votedProviders: []string{"pk2"},
+			fpPowers:       map[string]uint64{"pk1": 100, "pk2": 300},
+			expectResult:   true,
+		},
+		{
+			name:           "exact 2/3 votes, expects true",
+			allFpPks:       []string{"pk1", "pk2", "pk3"},
+			votedProviders: []string{"pk1", "pk2"},
+			fpPowers:       map[string]uint64{"pk1": 100, "pk2": 100, "pk3": 100},
+			expectResult:   true,
+		},
+		{
+			name:           "everyone has 100 voting power, 3 of them votes, return true",
+			allFpPks:       []string{"pk1", "pk2", "pk3", "pk4"},
+			votedProviders: []string{"pk1", "pk2", "pk3"},
+			fpPowers:       map[string]uint64{"pk1": 100, "pk2": 100, "pk3": 100, "pk4": 100},
+			expectResult:   true,
+		},
 	}
 
-	res, err := mockSdkClient.QueryIsBlockBabylonFinalized(queryParams)
-	require.NoError(t, err)
-	require.True(t, res)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctl := gomock.NewController(t)
+			defer ctl.Finish()
+
+			mockCwClient := mocks.NewMockCosmWasmClientInterface(ctl)
+			mockCwClient.EXPECT().QueryIsEnabled().Return(true, nil).Times(1)
+			mockCwClient.EXPECT().QueryConsumerId().Return(consumerChainID, nil).Times(1)
+			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(queryParams).Return(tc.votedProviders, nil).Times(1)
+
+			mockBTCClient := mocks.NewMockBTCClientInterface(ctl)
+			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(queryParams.BlockTimestamp).Return(BTCHeight, nil).Times(1)
+
+			mockBBNClient := mocks.NewMockBBNClientInterface(ctl)
+			mockBBNClient.EXPECT().QueryAllFpBtcPubKeys(consumerChainID).Return(tc.allFpPks, nil).Times(1)
+			mockBBNClient.EXPECT().QueryMultiFpPower(tc.allFpPks, BTCHeight).Return(tc.fpPowers, nil).Times(1)
+
+			mockSdkClient := &SdkClient{
+				cwClient:  mockCwClient,
+				bbnClient: mockBBNClient,
+				btcClient: mockBTCClient,
+			}
+
+			res, err := mockSdkClient.QueryIsBlockBabylonFinalized(queryParams)
+			require.NoError(t, err)
+			require.Equal(t, tc.expectResult, res)
+		})
+	}
 }
