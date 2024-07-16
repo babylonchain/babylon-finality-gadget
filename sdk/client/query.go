@@ -108,8 +108,8 @@ func (sdkClient *SdkClient) QueryIsBlockBabylonFinalized(
  * Example: if give block range 1-10, and block 1-5 are finalized, and when querying block 6 we meet an error, then
  * return (5, error)
  *
- * Note: caller needs to make sure the given queryBlocks are consecutive (we don't check hashes inside this method) and
- * start from low to high
+ * Note: caller needs to make sure the given queryBlocks are consecutive (we don't check hashes inside this method)
+ * and start from low to high
  */
 func (sdkClient *SdkClient) QueryBlockRangeBabylonFinalized(
 	queryBlocks []*cwclient.L2Block,

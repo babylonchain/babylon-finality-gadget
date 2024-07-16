@@ -1,7 +1,6 @@
 package client
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/babylonchain/babylon-finality-gadget/sdk/cwclient"
@@ -76,9 +75,6 @@ func TestQueryIsBlockBabylonFinalized(t *testing.T) {
 		},
 	}
 
-	fmt.Println("before test loop")
-	fmt.Println(queryParams.BlockHash)
-
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctl := gomock.NewController(t)
@@ -87,8 +83,6 @@ func TestQueryIsBlockBabylonFinalized(t *testing.T) {
 			mockCwClient := mocks.NewMockICosmWasmClient(ctl)
 			mockCwClient.EXPECT().QueryIsEnabled().Return(true, nil).Times(1)
 			mockCwClient.EXPECT().QueryConsumerId().Return(consumerChainID, nil).Times(1)
-			fmt.Println("in test loop before mock")
-			fmt.Println(queryParams.BlockHash)
 			mockCwClient.EXPECT().
 				QueryListOfVotedFinalityProviders(&queryParams).
 				Return(tc.votedProviders, nil).
