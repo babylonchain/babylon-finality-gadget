@@ -14,7 +14,7 @@ func TestFinalityGadgetDisabled(t *testing.T) {
 	ctl := gomock.NewController(t)
 
 	// mock CwClient
-	mockCwClient := mocks.NewMockCosmWasmClientInterface(ctl)
+	mockCwClient := mocks.NewMockICosmWasmClient(ctl)
 	mockCwClient.EXPECT().QueryIsEnabled().Return(false, nil).Times(1)
 
 	mockSdkClient := &SdkClient{
@@ -84,7 +84,7 @@ func TestQueryIsBlockBabylonFinalized(t *testing.T) {
 			ctl := gomock.NewController(t)
 			defer ctl.Finish()
 
-			mockCwClient := mocks.NewMockCosmWasmClientInterface(ctl)
+			mockCwClient := mocks.NewMockICosmWasmClient(ctl)
 			mockCwClient.EXPECT().QueryIsEnabled().Return(true, nil).Times(1)
 			mockCwClient.EXPECT().QueryConsumerId().Return(consumerChainID, nil).Times(1)
 			fmt.Println("in test loop before mock")
@@ -94,13 +94,13 @@ func TestQueryIsBlockBabylonFinalized(t *testing.T) {
 				Return(tc.votedProviders, nil).
 				Times(1)
 
-			mockBTCClient := mocks.NewMockBTCClientInterface(ctl)
+			mockBTCClient := mocks.NewMockIBitcoinClient(ctl)
 			mockBTCClient.EXPECT().
 				GetBlockHeightByTimestamp(queryParams.BlockTimestamp).
 				Return(BTCHeight, nil).
 				Times(1)
 
-			mockBBNClient := mocks.NewMockBBNClientInterface(ctl)
+			mockBBNClient := mocks.NewMockIBabylonClient(ctl)
 			mockBBNClient.EXPECT().
 				QueryAllFpBtcPubKeys(consumerChainID).
 				Return(tc.allFpPks, nil).

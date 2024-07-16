@@ -7,12 +7,12 @@ import (
 	bbncfg "github.com/babylonchain/babylon/client/config"
 	"go.uber.org/zap"
 
+	"github.com/babylonchain/babylon-finality-gadget/sdk/bbnclient"
 	"github.com/babylonchain/babylon-finality-gadget/sdk/btcclient"
 	sdkconfig "github.com/babylonchain/babylon-finality-gadget/sdk/config"
 
 	babylonClient "github.com/babylonchain/babylon/client/client"
 
-	"github.com/babylonchain/babylon-finality-gadget/sdk/bbnclient"
 	"github.com/babylonchain/babylon-finality-gadget/sdk/cwclient"
 )
 
@@ -20,9 +20,9 @@ import (
 // It only requires the client config to have `rpcAddr`, but not other fields
 // such as keyring, chain ID, etc..
 type SdkClient struct {
-	bbnClient bbnclient.BBNClientInterface
-	cwClient  cwclient.CosmWasmClientInterface
-	btcClient btcclient.BTCClientInterface
+	bbnClient IBabylonClient
+	cwClient  ICosmWasmClient
+	btcClient IBitcoinClient
 }
 
 // NewClient creates a new BabylonFinalityGadgetClient according to the given config
@@ -50,7 +50,7 @@ func NewClient(config *sdkconfig.Config) (*SdkClient, error) {
 		return nil, fmt.Errorf("failed to create Babylon client: %w", err)
 	}
 
-	var btcClient btcclient.BTCClientInterface
+	var btcClient IBitcoinClient
 	// Create BTC client
 	switch config.ChainID {
 	// TODO: once we set up our own local BTC devnet, we don't need to use this mock BTC client
