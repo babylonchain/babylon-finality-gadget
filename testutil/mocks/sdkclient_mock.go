@@ -16,31 +16,31 @@ import (
 	gomock "go.uber.org/mock/gomock"
 )
 
-// MockSdkClientInterface is a mock of SdkClientInterface interface.
-type MockSdkClientInterface struct {
+// MockISdkClient is a mock of ISdkClient interface.
+type MockISdkClient struct {
 	ctrl     *gomock.Controller
-	recorder *MockSdkClientInterfaceMockRecorder
+	recorder *MockISdkClientMockRecorder
 }
 
-// MockSdkClientInterfaceMockRecorder is the mock recorder for MockSdkClientInterface.
-type MockSdkClientInterfaceMockRecorder struct {
-	mock *MockSdkClientInterface
+// MockISdkClientMockRecorder is the mock recorder for MockISdkClient.
+type MockISdkClientMockRecorder struct {
+	mock *MockISdkClient
 }
 
-// NewMockSdkClientInterface creates a new mock instance.
-func NewMockSdkClientInterface(ctrl *gomock.Controller) *MockSdkClientInterface {
-	mock := &MockSdkClientInterface{ctrl: ctrl}
-	mock.recorder = &MockSdkClientInterfaceMockRecorder{mock}
+// NewMockISdkClient creates a new mock instance.
+func NewMockISdkClient(ctrl *gomock.Controller) *MockISdkClient {
+	mock := &MockISdkClient{ctrl: ctrl}
+	mock.recorder = &MockISdkClientMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockSdkClientInterface) EXPECT() *MockSdkClientInterfaceMockRecorder {
+func (m *MockISdkClient) EXPECT() *MockISdkClientMockRecorder {
 	return m.recorder
 }
 
 // QueryBlockRangeBabylonFinalized mocks base method.
-func (m *MockSdkClientInterface) QueryBlockRangeBabylonFinalized(queryBlocks []*cwclient.L2Block) (*uint64, error) {
+func (m *MockISdkClient) QueryBlockRangeBabylonFinalized(queryBlocks []*cwclient.L2Block) (*uint64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "QueryBlockRangeBabylonFinalized", queryBlocks)
 	ret0, _ := ret[0].(*uint64)
@@ -49,13 +49,13 @@ func (m *MockSdkClientInterface) QueryBlockRangeBabylonFinalized(queryBlocks []*
 }
 
 // QueryBlockRangeBabylonFinalized indicates an expected call of QueryBlockRangeBabylonFinalized.
-func (mr *MockSdkClientInterfaceMockRecorder) QueryBlockRangeBabylonFinalized(queryBlocks any) *gomock.Call {
+func (mr *MockISdkClientMockRecorder) QueryBlockRangeBabylonFinalized(queryBlocks any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryBlockRangeBabylonFinalized", reflect.TypeOf((*MockSdkClientInterface)(nil).QueryBlockRangeBabylonFinalized), queryBlocks)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryBlockRangeBabylonFinalized", reflect.TypeOf((*MockISdkClient)(nil).QueryBlockRangeBabylonFinalized), queryBlocks)
 }
 
 // QueryIsBlockBabylonFinalized mocks base method.
-func (m *MockSdkClientInterface) QueryIsBlockBabylonFinalized(queryParams *cwclient.L2Block) (bool, error) {
+func (m *MockISdkClient) QueryIsBlockBabylonFinalized(queryParams *cwclient.L2Block) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "QueryIsBlockBabylonFinalized", queryParams)
 	ret0, _ := ret[0].(bool)
@@ -64,7 +64,7 @@ func (m *MockSdkClientInterface) QueryIsBlockBabylonFinalized(queryParams *cwcli
 }
 
 // QueryIsBlockBabylonFinalized indicates an expected call of QueryIsBlockBabylonFinalized.
-func (mr *MockSdkClientInterfaceMockRecorder) QueryIsBlockBabylonFinalized(queryParams any) *gomock.Call {
+func (mr *MockISdkClientMockRecorder) QueryIsBlockBabylonFinalized(queryParams any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryIsBlockBabylonFinalized", reflect.TypeOf((*MockSdkClientInterface)(nil).QueryIsBlockBabylonFinalized), queryParams)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryIsBlockBabylonFinalized", reflect.TypeOf((*MockISdkClient)(nil).QueryIsBlockBabylonFinalized), queryParams)
 }
