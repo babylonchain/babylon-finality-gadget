@@ -212,17 +212,17 @@ func TestQueryBlockRangeBabylonFinalized(t *testing.T) {
 
 	testCases := []struct {
 		name         string
-		queryBlocks  []*cwclient.L2Block
-		expectResult *uint64
 		expectedErr  error
+		expectResult *uint64
+		queryBlocks  []*cwclient.L2Block
 	}{
-		{"empty query blocks", []*cwclient.L2Block{}, nil, fmt.Errorf("no blocks provided")},
-		{"single block with finalized", []*cwclient.L2Block{&blockA}, &blockA.BlockHeight, nil},
-		{"single block with error", []*cwclient.L2Block{&blockE}, nil, ErrNoFpHasVotingPower},
-		{"non-consecutive blocks", []*cwclient.L2Block{&blockA, &blockE}, nil, fmt.Errorf("blocks are not consecutive")},
-		{"consecutive blocks with finalized partially", []*cwclient.L2Block{&blockA, &blockB, &blockC, &blockD}, &blockC.BlockHeight, nil},
-		{"all blocks with finalized", []*cwclient.L2Block{&blockA, &blockB, &blockC}, &blockC.BlockHeight, nil},
-		{"consecutive blocks with error", []*cwclient.L2Block{&blockE, &blockF}, nil, ErrNoFpHasVotingPower},
+		{"empty query blocks", fmt.Errorf("no blocks provided"), nil, []*cwclient.L2Block{}},
+		{"single block with finalized", nil, &blockA.BlockHeight, []*cwclient.L2Block{&blockA}},
+		{"single block with error", ErrNoFpHasVotingPower, nil, []*cwclient.L2Block{&blockE}},
+		{"non-consecutive blocks", fmt.Errorf("blocks are not consecutive"), nil, []*cwclient.L2Block{&blockA, &blockE}},
+		{"consecutive blocks with finalized partially", nil, &blockC.BlockHeight, []*cwclient.L2Block{&blockA, &blockB, &blockC, &blockD}},
+		{"all blocks with finalized", nil, &blockC.BlockHeight, []*cwclient.L2Block{&blockA, &blockB, &blockC}},
+		{"consecutive blocks with error", ErrNoFpHasVotingPower, nil, []*cwclient.L2Block{&blockE, &blockF}},
 	}
 
 	for _, tc := range testCases {
