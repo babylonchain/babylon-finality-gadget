@@ -210,6 +210,22 @@ func TestQueryBlockRangeBabylonFinalized(t *testing.T) {
 	blockFWithHashTrimmed := blockF
 	blockFWithHashTrimmed.BlockHash = strings.TrimPrefix(blockF.BlockHash, "0x")
 
+	blockG := cwclient.L2Block{
+		BlockHash:      testutils.RandomHash(rng).String(),
+		BlockHeight:    blockF.BlockHeight + 1,
+		BlockTimestamp: blockF.BlockTimestamp + l2BlockTime,
+	}
+	blockGWithHashTrimmed := blockG
+	blockGWithHashTrimmed.BlockHash = strings.TrimPrefix(blockG.BlockHash, "0x")
+
+	blockH := cwclient.L2Block{
+		BlockHash:      testutils.RandomHash(rng).String(),
+		BlockHeight:    blockG.BlockHeight + 300,
+		BlockTimestamp: blockG.BlockTimestamp + 300*l2BlockTime, // 10 minutes later
+	}
+	blockHWithHashTrimmed := blockH
+	blockHWithHashTrimmed.BlockHash = strings.TrimPrefix(blockH.BlockHash, "0x")
+
 	testCases := []struct {
 		name         string
 		expectedErr  error
@@ -218,11 +234,13 @@ func TestQueryBlockRangeBabylonFinalized(t *testing.T) {
 	}{
 		{"empty query blocks", fmt.Errorf("no blocks provided"), nil, []*cwclient.L2Block{}},
 		{"single block with finalized", nil, &blockA.BlockHeight, []*cwclient.L2Block{&blockA}},
-		{"single block with error", ErrNoFpHasVotingPower, nil, []*cwclient.L2Block{&blockE}},
+		{"single block with error", ErrNoFpHasVotingPower, nil, []*cwclient.L2Block{&blockH}},
 		{"non-consecutive blocks", fmt.Errorf("blocks are not consecutive"), nil, []*cwclient.L2Block{&blockA, &blockE}},
-		{"consecutive blocks with finalized partially", nil, &blockC.BlockHeight, []*cwclient.L2Block{&blockA, &blockB, &blockC, &blockD}},
-		{"all blocks with finalized", nil, &blockC.BlockHeight, []*cwclient.L2Block{&blockA, &blockB, &blockC}},
-		{"consecutive blocks with error", ErrNoFpHasVotingPower, nil, []*cwclient.L2Block{&blockE, &blockF}},
+		{"consecutive blocks with finalized partially", nil, &blockB.BlockHeight, []*cwclient.L2Block{&blockA, &blockB, &blockC}},
+		{"consecutive blocks with finalized partially and error", nil, &blockB.BlockHeight, []*cwclient.L2Block{&blockA, &blockB, &blockC, &blockD}},
+		{"all consecutive blocks with finalized", nil, &blockB.BlockHeight, []*cwclient.L2Block{&blockA, &blockB}},
+		{"consecutive blocks without finalized", nil, nil, []*cwclient.L2Block{&blockE, &blockF}},
+		{"consecutive blocks without finalized and with error", nil, nil, []*cwclient.L2Block{&blockE, &blockF, &blockG}},
 	}
 
 	for _, tc := range testCases {
@@ -243,10 +261,12 @@ func TestQueryBlockRangeBabylonFinalized(t *testing.T) {
 			mockCwClient.EXPECT().QueryConsumerId().Return("consumer-chain-id", nil).AnyTimes()
 			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(&blockAWithHashTrimmed).Return([]string{"pk1", "pk2", "pk3"}, nil).AnyTimes()
 			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(&blockBWithHashTrimmed).Return([]string{"pk1", "pk2", "pk3"}, nil).AnyTimes()
-			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(&blockCWithHashTrimmed).Return([]string{"pk1", "pk2", "pk3"}, nil).AnyTimes()
-			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(&blockDWithHashTrimmed).Return([]string{"pk1"}, nil).AnyTimes()
-			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(&blockEWithHashTrimmed).Return([]string{"pk1", "pk2", "pk3"}, nil).AnyTimes()
-			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(&blockFWithHashTrimmed).Return([]string{"pk1", "pk2", "pk3"}, nil).AnyTimes()
+			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(&blockCWithHashTrimmed).Return([]string{"pk1"}, nil).AnyTimes()
+			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(&blockDWithHashTrimmed).Return([]string{"pk3"}, nil).AnyTimes()
+			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(&blockEWithHashTrimmed).Return([]string{"pk1"}, nil).AnyTimes()
+			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(&blockFWithHashTrimmed).Return([]string{"pk2"}, nil).AnyTimes()
+			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(&blockGWithHashTrimmed).Return([]string{"pk3"}, nil).AnyTimes()
+			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(&blockHWithHashTrimmed).Return([]string{"pk1", "pk2", "pk3"}, nil).AnyTimes()
 
 			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockA.BlockTimestamp).Return(uint64(111), nil).AnyTimes()
 			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockB.BlockTimestamp).Return(uint64(111), nil).AnyTimes()
@@ -254,10 +274,13 @@ func TestQueryBlockRangeBabylonFinalized(t *testing.T) {
 			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockD.BlockTimestamp).Return(uint64(111), nil).AnyTimes()
 			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockE.BlockTimestamp).Return(uint64(112), nil).AnyTimes()
 			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockF.BlockTimestamp).Return(uint64(112), nil).AnyTimes()
+			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockG.BlockTimestamp).Return(uint64(112), nil).AnyTimes()
+			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockH.BlockTimestamp).Return(uint64(113), nil).AnyTimes()
 
 			mockBBNClient.EXPECT().QueryAllFpBtcPubKeys("consumer-chain-id").Return([]string{"pk1", "pk2", "pk3"}, nil).AnyTimes()
 			mockBBNClient.EXPECT().QueryMultiFpPower([]string{"pk1", "pk2", "pk3"}, uint64(111)).Return(map[string]uint64{"pk1": 100, "pk2": 300, "pk3": 0}, nil).AnyTimes()
-			mockBBNClient.EXPECT().QueryMultiFpPower([]string{"pk1", "pk2", "pk3"}, uint64(112)).Return(map[string]uint64{"pk1": 0, "pk2": 0, "pk3": 0}, nil).AnyTimes()
+			mockBBNClient.EXPECT().QueryMultiFpPower([]string{"pk1", "pk2", "pk3"}, uint64(112)).Return(map[string]uint64{"pk1": 100, "pk2": 200, "pk3": 0}, nil).AnyTimes()
+			mockBBNClient.EXPECT().QueryMultiFpPower([]string{"pk1", "pk2", "pk3"}, uint64(113)).Return(map[string]uint64{"pk1": 0, "pk2": 0, "pk3": 0}, nil).AnyTimes()
 
 			res, err := mockSdkClient.QueryBlockRangeBabylonFinalized(tc.queryBlocks)
 			require.Equal(t, tc.expectResult, res)
