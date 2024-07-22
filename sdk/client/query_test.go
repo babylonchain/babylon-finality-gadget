@@ -185,7 +185,7 @@ func TestQueryBlockRangeBabylonFinalized(t *testing.T) {
 		{"single block with finalized", nil, &blockA.BlockHeight, []*cwclient.L2Block{&blockA}},
 		{"single block with error", fmt.Errorf("RPC rate limit error"), nil, []*cwclient.L2Block{&blockD}},
 		{"non-consecutive blocks", fmt.Errorf("blocks are not consecutive"), nil, []*cwclient.L2Block{&blockA, &blockD}},
-		{"consecutive blocks that are partially finalized", nil, &blockB.BlockHeight, []*cwclient.L2Block{&blockA, &blockB, &blockC}},
+		{"partially blocks are finalized and the last block has error", fmt.Errorf("RPC rate limit error"), &blockB.BlockHeight, []*cwclient.L2Block{&blockA, &blockB, &blockC}},
 		{"all consecutive blocks are finalized", nil, &blockB.BlockHeight, []*cwclient.L2Block{&blockA, &blockB}},
 		{"none of the block is finalized and the first block has error", fmt.Errorf("RPC rate limit error"), nil, []*cwclient.L2Block{&blockD, &blockE}},
 		{"none of the block is finalized and the second block has error", nil, nil, []*cwclient.L2Block{&blockF, &blockG}},
@@ -209,7 +209,7 @@ func TestQueryBlockRangeBabylonFinalized(t *testing.T) {
 			mockCwClient.EXPECT().QueryConsumerId().Return("consumer-chain-id", nil).AnyTimes()
 			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(&blockAWithHashTrimmed).Return([]string{"pk1", "pk2", "pk3"}, nil).AnyTimes()
 			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(&blockBWithHashTrimmed).Return([]string{"pk1", "pk2", "pk3"}, nil).AnyTimes()
-			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(&blockCWithHashTrimmed).Return([]string{"pk1"}, nil).AnyTimes()
+			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(&blockCWithHashTrimmed).Return([]string{"pk1", "pk2", "pk3"}, nil).AnyTimes()
 			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(&blockDWithHashTrimmed).Return([]string{"pk3"}, nil).AnyTimes()
 			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(&blockEWithHashTrimmed).Return([]string{"pk1"}, nil).AnyTimes()
 			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(&blockFWithHashTrimmed).Return([]string{"pk2"}, nil).AnyTimes()
@@ -217,7 +217,7 @@ func TestQueryBlockRangeBabylonFinalized(t *testing.T) {
 
 			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockA.BlockTimestamp).Return(uint64(111), nil).AnyTimes()
 			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockB.BlockTimestamp).Return(uint64(111), nil).AnyTimes()
-			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockC.BlockTimestamp).Return(uint64(111), nil).AnyTimes()
+			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockC.BlockTimestamp).Return(uint64(111), fmt.Errorf("RPC rate limit error")).AnyTimes()
 			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockD.BlockTimestamp).Return(uint64(112), fmt.Errorf("RPC rate limit error")).AnyTimes()
 			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockE.BlockTimestamp).Return(uint64(112), nil).AnyTimes()
 			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockF.BlockTimestamp).Return(uint64(113), nil).AnyTimes()
