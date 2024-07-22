@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/babylonchain/babylon-finality-gadget/sdk/cwclient"
 	"github.com/babylonchain/babylon-finality-gadget/testutil/mocks"
@@ -163,68 +164,16 @@ func TestQueryIsBlockBabylonFinalized(t *testing.T) {
 }
 
 func TestQueryBlockRangeBabylonFinalized(t *testing.T) {
-	rng := rand.New(rand.NewSource(1234))
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	l2BlockTime := uint64(2)
-	blockA := testutils.RandomL2Block(rng)
-	blockAWithHashTrimmed := blockA
-	blockAWithHashTrimmed.BlockHash = strings.TrimPrefix(blockA.BlockHash, "0x")
-
-	blockB := cwclient.L2Block{
-		BlockHash:      testutils.RandomHash(rng).String(),
-		BlockHeight:    blockA.BlockHeight + 1,
-		BlockTimestamp: blockA.BlockTimestamp + l2BlockTime,
-	}
-	blockBWithHashTrimmed := blockB
-	blockBWithHashTrimmed.BlockHash = strings.TrimPrefix(blockB.BlockHash, "0x")
-
-	blockC := cwclient.L2Block{
-		BlockHash:      testutils.RandomHash(rng).String(),
-		BlockHeight:    blockB.BlockHeight + 1,
-		BlockTimestamp: blockB.BlockTimestamp + l2BlockTime,
-	}
-	blockCWithHashTrimmed := blockC
-	blockCWithHashTrimmed.BlockHash = strings.TrimPrefix(blockC.BlockHash, "0x")
-
-	blockD := cwclient.L2Block{
-		BlockHash:      testutils.RandomHash(rng).String(),
-		BlockHeight:    blockC.BlockHeight + 1,
-		BlockTimestamp: blockC.BlockTimestamp + l2BlockTime,
-	}
-	blockDWithHashTrimmed := blockD
-	blockDWithHashTrimmed.BlockHash = strings.TrimPrefix(blockD.BlockHash, "0x")
-
-	blockE := cwclient.L2Block{
-		BlockHash:      testutils.RandomHash(rng).String(),
-		BlockHeight:    blockD.BlockHeight + 300,
-		BlockTimestamp: blockD.BlockTimestamp + 300*l2BlockTime, // 10 minutes later
-	}
-	blockEWithHashTrimmed := blockE
-	blockEWithHashTrimmed.BlockHash = strings.TrimPrefix(blockE.BlockHash, "0x")
-
-	blockF := cwclient.L2Block{
-		BlockHash:      testutils.RandomHash(rng).String(),
-		BlockHeight:    blockE.BlockHeight + 1,
-		BlockTimestamp: blockE.BlockTimestamp + l2BlockTime,
-	}
-	blockFWithHashTrimmed := blockF
-	blockFWithHashTrimmed.BlockHash = strings.TrimPrefix(blockF.BlockHash, "0x")
-
-	blockG := cwclient.L2Block{
-		BlockHash:      testutils.RandomHash(rng).String(),
-		BlockHeight:    blockF.BlockHeight + 1,
-		BlockTimestamp: blockF.BlockTimestamp + l2BlockTime,
-	}
-	blockGWithHashTrimmed := blockG
-	blockGWithHashTrimmed.BlockHash = strings.TrimPrefix(blockG.BlockHash, "0x")
-
-	blockH := cwclient.L2Block{
-		BlockHash:      testutils.RandomHash(rng).String(),
-		BlockHeight:    blockG.BlockHeight + 300,
-		BlockTimestamp: blockG.BlockTimestamp + 300*l2BlockTime, // 10 minutes later
-	}
-	blockHWithHashTrimmed := blockH
-	blockHWithHashTrimmed.BlockHash = strings.TrimPrefix(blockH.BlockHash, "0x")
+	blockA, blockAWithHashTrimmed := testutils.RandomL2Block(rng)
+	blockB, blockBWithHashTrimmed := testutils.GenL2Block(rng, &blockA, l2BlockTime, 1)
+	blockC, blockCWithHashTrimmed := testutils.GenL2Block(rng, &blockB, l2BlockTime, 1)
+	blockD, blockDWithHashTrimmed := testutils.GenL2Block(rng, &blockC, l2BlockTime, 300) // 10 minutes later
+	blockE, blockEWithHashTrimmed := testutils.GenL2Block(rng, &blockD, l2BlockTime, 1)
+	blockF, blockFWithHashTrimmed := testutils.GenL2Block(rng, &blockE, l2BlockTime, 300)
+	blockG, blockGWithHashTrimmed := testutils.GenL2Block(rng, &blockF, l2BlockTime, 1)
 
 	testCases := []struct {
 		name         string
@@ -234,13 +183,12 @@ func TestQueryBlockRangeBabylonFinalized(t *testing.T) {
 	}{
 		{"empty query blocks", fmt.Errorf("no blocks provided"), nil, []*cwclient.L2Block{}},
 		{"single block with finalized", nil, &blockA.BlockHeight, []*cwclient.L2Block{&blockA}},
-		{"single block with error", ErrNoFpHasVotingPower, nil, []*cwclient.L2Block{&blockH}},
-		{"non-consecutive blocks", fmt.Errorf("blocks are not consecutive"), nil, []*cwclient.L2Block{&blockA, &blockE}},
-		{"consecutive blocks with finalized partially", nil, &blockB.BlockHeight, []*cwclient.L2Block{&blockA, &blockB, &blockC}},
-		{"consecutive blocks with finalized partially and error", nil, &blockB.BlockHeight, []*cwclient.L2Block{&blockA, &blockB, &blockC, &blockD}},
-		{"all consecutive blocks with finalized", nil, &blockB.BlockHeight, []*cwclient.L2Block{&blockA, &blockB}},
-		{"consecutive blocks without finalized", nil, nil, []*cwclient.L2Block{&blockE, &blockF}},
-		{"consecutive blocks without finalized and with error", nil, nil, []*cwclient.L2Block{&blockE, &blockF, &blockG}},
+		{"single block with error", fmt.Errorf("RPC rate limit error"), nil, []*cwclient.L2Block{&blockD}},
+		{"non-consecutive blocks", fmt.Errorf("blocks are not consecutive"), nil, []*cwclient.L2Block{&blockA, &blockD}},
+		{"consecutive blocks that are partially finalized", nil, &blockB.BlockHeight, []*cwclient.L2Block{&blockA, &blockB, &blockC}},
+		{"all consecutive blocks are finalized", nil, &blockB.BlockHeight, []*cwclient.L2Block{&blockA, &blockB}},
+		{"none of the block is finalized and the first block has error", fmt.Errorf("RPC rate limit error"), nil, []*cwclient.L2Block{&blockD, &blockE}},
+		{"none of the block is finalized and the second block has error", nil, nil, []*cwclient.L2Block{&blockF, &blockG}},
 	}
 
 	for _, tc := range testCases {
@@ -266,21 +214,17 @@ func TestQueryBlockRangeBabylonFinalized(t *testing.T) {
 			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(&blockEWithHashTrimmed).Return([]string{"pk1"}, nil).AnyTimes()
 			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(&blockFWithHashTrimmed).Return([]string{"pk2"}, nil).AnyTimes()
 			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(&blockGWithHashTrimmed).Return([]string{"pk3"}, nil).AnyTimes()
-			mockCwClient.EXPECT().QueryListOfVotedFinalityProviders(&blockHWithHashTrimmed).Return([]string{"pk1", "pk2", "pk3"}, nil).AnyTimes()
 
 			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockA.BlockTimestamp).Return(uint64(111), nil).AnyTimes()
 			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockB.BlockTimestamp).Return(uint64(111), nil).AnyTimes()
 			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockC.BlockTimestamp).Return(uint64(111), nil).AnyTimes()
-			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockD.BlockTimestamp).Return(uint64(111), nil).AnyTimes()
+			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockD.BlockTimestamp).Return(uint64(112), fmt.Errorf("RPC rate limit error")).AnyTimes()
 			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockE.BlockTimestamp).Return(uint64(112), nil).AnyTimes()
-			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockF.BlockTimestamp).Return(uint64(112), nil).AnyTimes()
-			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockG.BlockTimestamp).Return(uint64(112), nil).AnyTimes()
-			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockH.BlockTimestamp).Return(uint64(113), nil).AnyTimes()
+			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockF.BlockTimestamp).Return(uint64(113), nil).AnyTimes()
+			mockBTCClient.EXPECT().GetBlockHeightByTimestamp(blockG.BlockTimestamp).Return(uint64(113), fmt.Errorf("RPC rate limit error")).AnyTimes()
 
 			mockBBNClient.EXPECT().QueryAllFpBtcPubKeys("consumer-chain-id").Return([]string{"pk1", "pk2", "pk3"}, nil).AnyTimes()
-			mockBBNClient.EXPECT().QueryMultiFpPower([]string{"pk1", "pk2", "pk3"}, uint64(111)).Return(map[string]uint64{"pk1": 100, "pk2": 300, "pk3": 0}, nil).AnyTimes()
-			mockBBNClient.EXPECT().QueryMultiFpPower([]string{"pk1", "pk2", "pk3"}, uint64(112)).Return(map[string]uint64{"pk1": 100, "pk2": 200, "pk3": 0}, nil).AnyTimes()
-			mockBBNClient.EXPECT().QueryMultiFpPower([]string{"pk1", "pk2", "pk3"}, uint64(113)).Return(map[string]uint64{"pk1": 0, "pk2": 0, "pk3": 0}, nil).AnyTimes()
+			mockBBNClient.EXPECT().QueryMultiFpPower([]string{"pk1", "pk2", "pk3"}, gomock.Any()).Return(map[string]uint64{"pk1": 100, "pk2": 200, "pk3": 300}, nil).AnyTimes()
 
 			res, err := mockSdkClient.QueryBlockRangeBabylonFinalized(tc.queryBlocks)
 			require.Equal(t, tc.expectResult, res)
