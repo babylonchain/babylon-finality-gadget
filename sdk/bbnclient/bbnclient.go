@@ -1,6 +1,8 @@
 package bbnclient
 
 import (
+	"sync"
+
 	"github.com/babylonchain/babylon/client/query"
 	btcstakingtypes "github.com/babylonchain/babylon/x/btcstaking/types"
 	sdkquerytypes "github.com/cosmos/cosmos-sdk/types/query"
@@ -71,6 +73,40 @@ func (bbnClient *Client) QueryMultiFpPower(
 	}
 
 	return fpPowerMap, nil
+}
+
+func (bbnClient *Client) QueryEarliestDelHeight(fpPkHexList []string) (*uint64, error) {
+	var earliestDelHeight *uint64
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	errors := make(chan error, len(fpPkHexList))
+	// find the earliest BTC delegation height among all FP delegations
+	for _, fpPkHex := range fpPkHexList {
+		wg.Add(1)
+		go func(fpPkHex string) {
+			defer wg.Done()
+			fpEarliestDelHeight, err := bbnClient.QueryFpEarliestDelHeight(fpPkHex)
+			if err != nil {
+				errors <- err
+				return
+			}
+			if fpEarliestDelHeight != nil {
+				mu.Lock()
+				if earliestDelHeight == nil || *fpEarliestDelHeight < *earliestDelHeight {
+					earliestDelHeight = fpEarliestDelHeight
+
+				}
+				mu.Unlock()
+			}
+		}(fpPkHex)
+	}
+	wg.Wait()
+	close(errors)
+	if len(errors) > 0 {
+		return nil, <-errors
+	}
+
+	return earliestDelHeight, nil
 }
 
 func (bbnClient *Client) QueryFpEarliestDelHeight(fpPubkeyHex string) (*uint64, error) {

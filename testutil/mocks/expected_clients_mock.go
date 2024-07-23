@@ -56,19 +56,19 @@ func (mr *MockIBabylonClientMockRecorder) QueryAllFpBtcPubKeys(consumerId any) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryAllFpBtcPubKeys", reflect.TypeOf((*MockIBabylonClient)(nil).QueryAllFpBtcPubKeys), consumerId)
 }
 
-// QueryFpEarliestDelHeight mocks base method.
-func (m *MockIBabylonClient) QueryFpEarliestDelHeight(fpPubkeyHex string) (*uint64, error) {
+// QueryEarliestDelHeight mocks base method.
+func (m *MockIBabylonClient) QueryEarliestDelHeight(fpPubkeyHexList []string) (*uint64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "QueryFpEarliestDelHeight", fpPubkeyHex)
+	ret := m.ctrl.Call(m, "QueryEarliestDelHeight", fpPubkeyHexList)
 	ret0, _ := ret[0].(*uint64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// QueryFpEarliestDelHeight indicates an expected call of QueryFpEarliestDelHeight.
-func (mr *MockIBabylonClientMockRecorder) QueryFpEarliestDelHeight(fpPubkeyHex any) *gomock.Call {
+// QueryEarliestDelHeight indicates an expected call of QueryEarliestDelHeight.
+func (mr *MockIBabylonClientMockRecorder) QueryEarliestDelHeight(fpPubkeyHexList any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryFpEarliestDelHeight", reflect.TypeOf((*MockIBabylonClient)(nil).QueryFpEarliestDelHeight), fpPubkeyHex)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryEarliestDelHeight", reflect.TypeOf((*MockIBabylonClient)(nil).QueryEarliestDelHeight), fpPubkeyHexList)
 }
 
 // QueryFpPower mocks base method.
