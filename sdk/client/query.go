@@ -3,6 +3,7 @@ package client
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/babylonchain/babylon-finality-gadget/sdk/cwclient"
 )
@@ -136,4 +137,50 @@ func (sdkClient *SdkClient) QueryBlockRangeBabylonFinalized(
 		}
 	}
 	return finalizedBlockHeight, nil
+}
+
+func (sdkClient *SdkClient) QueryEarliestDelHeight() (*uint64, error) {
+	// get the consumer chain id
+	consumerId, err := sdkClient.cwClient.QueryConsumerId()
+	if err != nil {
+		return nil, err
+	}
+
+	// get all the FPs pubkey for the consumer chain
+	fpPkHexList, err := sdkClient.bbnClient.QueryAllFpBtcPubKeys(consumerId)
+	if err != nil {
+		return nil, err
+	}
+
+	var earliestDelHeight *uint64
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	errors := make(chan error, len(fpPkHexList))
+	// find the earliest BTC delegation height among all FP delegations
+	for _, fpPkHex := range fpPkHexList {
+		wg.Add(1)
+		go func(fpPkHex string) {
+			defer wg.Done()
+			fpEarliestDelHeight, err := sdkClient.bbnClient.QueryFpEarliestDelHeight(fpPkHex)
+			if err != nil {
+				errors <- err
+				return
+			}
+			if fpEarliestDelHeight != nil {
+				mu.Lock()
+				if earliestDelHeight == nil || *fpEarliestDelHeight < *earliestDelHeight {
+					earliestDelHeight = fpEarliestDelHeight
+
+				}
+				mu.Unlock()
+			}
+		}(fpPkHex)
+	}
+	wg.Wait()
+	close(errors)
+	if len(errors) > 0 {
+		return nil, <-errors
+	}
+
+	return earliestDelHeight, nil
 }
