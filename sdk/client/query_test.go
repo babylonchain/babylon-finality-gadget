@@ -185,7 +185,7 @@ func TestQueryBlockRangeBabylonFinalized(t *testing.T) {
 		{"single block with finalized", nil, &blockA.BlockHeight, []*cwclient.L2Block{&blockA}},
 		{"single block with error", fmt.Errorf("RPC rate limit error"), nil, []*cwclient.L2Block{&blockD}},
 		{"non-consecutive blocks", fmt.Errorf("blocks are not consecutive"), nil, []*cwclient.L2Block{&blockA, &blockD}},
-		{"partially blocks are finalized and the last block has error", fmt.Errorf("RPC rate limit error"), &blockB.BlockHeight, []*cwclient.L2Block{&blockA, &blockB, &blockC}},
+		{"the first two blocks are finalized and the last block has error", fmt.Errorf("RPC rate limit error"), &blockB.BlockHeight, []*cwclient.L2Block{&blockA, &blockB, &blockC}},
 		{"all consecutive blocks are finalized", nil, &blockB.BlockHeight, []*cwclient.L2Block{&blockA, &blockB}},
 		{"none of the block is finalized and the first block has error", fmt.Errorf("RPC rate limit error"), nil, []*cwclient.L2Block{&blockD, &blockE}},
 		{"none of the block is finalized and the second block has error", nil, nil, []*cwclient.L2Block{&blockF, &blockG}},
