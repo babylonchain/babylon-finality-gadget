@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/babylonchain/babylon/client/query"
-	btcstakingtypes "github.com/babylonchain/babylon/x/btcstaking/types"
+	"github.com/babylonchain/babylon/x/btcstaking/types"
 	sdkquerytypes "github.com/cosmos/cosmos-sdk/types/query"
 )
 
@@ -75,7 +75,7 @@ func (bbnClient *Client) QueryMultiFpPower(
 	return fpPowerMap, nil
 }
 
-func (bbnClient *Client) QueryEarliestDelHeight(fpPkHexList []string) (*uint64, error) {
+func (bbnClient *Client) QueryEarliestActiveDelBtcHeight(fpPkHexList []string) (*uint64, error) {
 	var earliestDelHeight *uint64
 	var mu sync.Mutex
 	var wg sync.WaitGroup
@@ -85,7 +85,7 @@ func (bbnClient *Client) QueryEarliestDelHeight(fpPkHexList []string) (*uint64, 
 		wg.Add(1)
 		go func(fpPkHex string) {
 			defer wg.Done()
-			fpEarliestDelHeight, err := bbnClient.QueryFpEarliestDelHeight(fpPkHex)
+			fpEarliestDelHeight, err := bbnClient.QueryFpEarliestActiveDelBtcHeight(fpPkHex)
 			if err != nil {
 				errors <- err
 				return
@@ -109,7 +109,7 @@ func (bbnClient *Client) QueryEarliestDelHeight(fpPkHexList []string) (*uint64, 
 	return earliestDelHeight, nil
 }
 
-func (bbnClient *Client) QueryFpEarliestDelHeight(fpPubkeyHex string) (*uint64, error) {
+func (bbnClient *Client) QueryFpEarliestActiveDelBtcHeight(fpPubkeyHex string) (*uint64, error) {
 	pagination := &sdkquerytypes.PageRequest{
 		Limit: 100,
 	}
@@ -118,17 +118,33 @@ func (bbnClient *Client) QueryFpEarliestDelHeight(fpPubkeyHex string) (*uint64, 
 	if err != nil {
 		return nil, err
 	}
+	// queries BtcConfirmationDepth, CovenantQuorum, and the latest BTC header
+	btccheckpointParams, err := bbnClient.QueryClient.BTCCheckpointParams()
+	if err != nil {
+		return nil, err
+	}
+	btcstakingParams, err := bbnClient.QueryClient.BTCStakingParams()
+	if err != nil {
+		return nil, err
+	}
+	kValue := btccheckpointParams.GetParams().BtcConfirmationDepth
+	covQuorum := btcstakingParams.GetParams().CovenantQuorum
+	btcHeader, err := bbnClient.QueryClient.BTCHeaderChainTip()
+	if err != nil {
+		return nil, err
+	}
 	var earliestBtcHeight *uint64
 	for {
 		// btcDels contains all the queried BTC delegations
 		for _, btcDels := range resp.BtcDelegatorDelegations {
 			for _, btcDel := range btcDels.Dels {
-				btcDelHeight, err := bbnClient.getDelConfirmHeight(btcDel)
-				if err != nil {
-					continue
-				}
-				if btcDelHeight != nil && (earliestBtcHeight == nil || *btcDelHeight < *earliestBtcHeight) {
-					earliestBtcHeight = btcDelHeight
+				// check whether the delegation is active
+				latestBtcHeight := btcHeader.GetHeader().Height
+				confirmationHeight := btcDel.StartHeight + kValue
+				if isActiveBtcDelegation(btcDel, latestBtcHeight, confirmationHeight, covQuorum) {
+					if earliestBtcHeight == nil || confirmationHeight < *earliestBtcHeight {
+						earliestBtcHeight = &confirmationHeight
+					}
 				}
 			}
 		}
@@ -140,31 +156,11 @@ func (bbnClient *Client) QueryFpEarliestDelHeight(fpPubkeyHex string) (*uint64, 
 	return earliestBtcHeight, nil
 }
 
-func (bbnClient *Client) getDelConfirmHeight(
-	btcDel *btcstakingtypes.BTCDelegationResponse,
-) (*uint64, error) {
-	btccheckpointParams, err := bbnClient.QueryClient.BTCCheckpointParams()
-	if err != nil {
-		return nil, err
-	}
-	btcstakingParams, err := bbnClient.QueryClient.BTCStakingParams()
-	if err != nil {
-		return nil, err
-	}
-	kValue := btccheckpointParams.GetParams().BtcConfirmationDepth
-	covQuorum := btcstakingParams.GetParams().CovenantQuorum
-
-	btcHeader, err := bbnClient.QueryClient.BTCHeaderChainTip()
-	if err != nil {
-		return nil, err
-	}
-	latestBtcHeight := btcHeader.Header.Height
-	confirmationHeight := btcDel.StartHeight + kValue
-	// The active delegation needs to satisfy:
-	// 1) the staking tx is k-deep in Bitcoin, i.e., start_height + k
-	// 2) it receives a quorum number of covenant committee signatures
-	if latestBtcHeight > confirmationHeight && btcDel.EndHeight > confirmationHeight && uint32(len(btcDel.CovenantSigs)) > covQuorum {
-		return &confirmationHeight, nil
-	}
-	return nil, nil
+// The active delegation needs to satisfy:
+// 1) the staking tx is k-deep in Bitcoin, i.e., start_height + k
+// 2) it receives a quorum number of covenant committee signatures
+func isActiveBtcDelegation(btcDel *types.BTCDelegationResponse, latestBtcHeight, confirmationHeight uint64, covQuorum uint32) bool {
+	return latestBtcHeight > confirmationHeight &&
+		btcDel.EndHeight > confirmationHeight &&
+		uint32(len(btcDel.CovenantSigs)) > covQuorum
 }

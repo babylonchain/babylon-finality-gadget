@@ -160,17 +160,17 @@ func TestQueryIsBlockBabylonFinalized(t *testing.T) {
 			}
 			if tc.name == "FP no delegation, 100% votes, expects false" {
 				mockBBNClient.EXPECT().
-					QueryEarliestDelHeight(tc.allFpPks).
+					QueryEarliestActiveDelBtcHeight(tc.allFpPks).
 					Return(nil, nil).
 					Times(1)
 			} else if tc.name == "Btc staking not activated, 100% votes, expects false" {
 				mockBBNClient.EXPECT().
-					QueryEarliestDelHeight(tc.allFpPks).
+					QueryEarliestActiveDelBtcHeight(tc.allFpPks).
 					Return(&BTCNotActivatedHeight, nil).
 					Times(1)
 			} else {
 				mockBBNClient.EXPECT().
-					QueryEarliestDelHeight(tc.allFpPks).
+					QueryEarliestActiveDelBtcHeight(tc.allFpPks).
 					Return(&BTCActivatedHeight, nil).
 					Times(1)
 			}

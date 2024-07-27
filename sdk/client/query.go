@@ -57,11 +57,11 @@ func (sdkClient *SdkClient) QueryIsBlockBabylonFinalized(
 		return false, err
 	}
 
-	earliestDelHeight, err := sdkClient.bbnClient.QueryEarliestDelHeight(allFpPks)
+	// check whether the btc staking is actived
+	earliestDelHeight, err := sdkClient.bbnClient.QueryEarliestActiveDelBtcHeight(allFpPks)
 	if err != nil {
 		return false, err
 	}
-	// check btc staking whether is actived
 	if earliestDelHeight == nil || btcblockHeight < *earliestDelHeight {
 		return false, ErrBtcStakingNotActivated
 	}
@@ -76,6 +76,11 @@ func (sdkClient *SdkClient) QueryIsBlockBabylonFinalized(
 	var totalPower uint64 = 0
 	for _, power := range allFpPower {
 		totalPower += power
+	}
+
+	// no FP has voting power for the consumer chain
+	if totalPower == 0 {
+		return false, ErrNoFpHasVotingPower
 	}
 
 	// get all FPs that voted this (L2 block height, L2 block hash) combination
