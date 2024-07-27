@@ -1,7 +1,9 @@
 package bbnclient
 
 import (
+	"context"
 	"sync"
+	"sync/atomic"
 
 	"github.com/babylonchain/babylon/client/query"
 	"github.com/babylonchain/babylon/x/btcstaking/types"
@@ -76,37 +78,59 @@ func (bbnClient *Client) QueryMultiFpPower(
 }
 
 func (bbnClient *Client) QueryEarliestActiveDelBtcHeight(fpPkHexList []string) (*uint64, error) {
-	var earliestDelHeight *uint64
-	var mu sync.Mutex
+	var activeDelHeight atomic.Value
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	var wg sync.WaitGroup
-	errors := make(chan error, len(fpPkHexList))
+	errChan := make(chan error, 1)
+
 	// find the earliest BTC delegation height among all FP delegations
 	for _, fpPkHex := range fpPkHexList {
 		wg.Add(1)
 		go func(fpPkHex string) {
 			defer wg.Done()
-			fpEarliestDelHeight, err := bbnClient.QueryFpEarliestActiveDelBtcHeight(fpPkHex)
-			if err != nil {
-				errors <- err
+			select {
+			case <-ctx.Done():
 				return
-			}
-			if fpEarliestDelHeight != nil {
-				mu.Lock()
-				if earliestDelHeight == nil || *fpEarliestDelHeight < *earliestDelHeight {
-					earliestDelHeight = fpEarliestDelHeight
-
+			default:
+				fpActiveDelHeight, err := bbnClient.QueryFpEarliestActiveDelBtcHeight(fpPkHex)
+				if err != nil {
+					cancel()
+					select {
+					case errChan <- err:
+					default:
+					}
+					return
 				}
-				mu.Unlock()
+				if fpActiveDelHeight != nil {
+					for {
+						current := activeDelHeight.Load()
+						if current == nil || *fpActiveDelHeight < *current.(*uint64) {
+							if activeDelHeight.CompareAndSwap(current, fpActiveDelHeight) {
+								break
+							}
+						} else {
+							break
+						}
+					}
+				}
 			}
 		}(fpPkHex)
 	}
-	wg.Wait()
-	close(errors)
-	if len(errors) > 0 {
-		return nil, <-errors
+
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
+
+	if err := <-errChan; err != nil {
+		return nil, err
 	}
 
-	return earliestDelHeight, nil
+	if val := activeDelHeight.Load(); val != nil {
+		return val.(*uint64), nil
+	}
+	return nil, nil
 }
 
 func (bbnClient *Client) QueryFpEarliestActiveDelBtcHeight(fpPubkeyHex string) (*uint64, error) {
