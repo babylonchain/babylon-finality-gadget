@@ -1,10 +1,6 @@
 package bbnclient
 
 import (
-	"context"
-	"sync"
-	"sync/atomic"
-
 	"github.com/babylonchain/babylon/client/query"
 	"github.com/babylonchain/babylon/x/btcstaking/types"
 	sdkquerytypes "github.com/cosmos/cosmos-sdk/types/query"
@@ -78,92 +74,60 @@ func (bbnClient *Client) QueryMultiFpPower(
 }
 
 func (bbnClient *Client) QueryEarliestActiveDelBtcHeight(fpPkHexList []string) (*uint64, error) {
-	var activeDelHeight atomic.Value
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	var wg sync.WaitGroup
-	errChan := make(chan error, 1)
+	var earliestHeight *uint64
 
-	// find the earliest BTC delegation height among all FP delegations
 	for _, fpPkHex := range fpPkHexList {
-		wg.Add(1)
-		go func(fpPkHex string) {
-			defer wg.Done()
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				fpActiveDelHeight, err := bbnClient.QueryFpEarliestActiveDelBtcHeight(fpPkHex)
-				if err != nil {
-					cancel()
-					select {
-					case errChan <- err:
-					default:
-					}
-					return
-				}
-				if fpActiveDelHeight != nil {
-					for {
-						current := activeDelHeight.Load()
-						if current == nil || *fpActiveDelHeight < *current.(*uint64) {
-							if activeDelHeight.CompareAndSwap(current, fpActiveDelHeight) {
-								break
-							}
-						} else {
-							break
-						}
-					}
-				}
-			}
-		}(fpPkHex)
+		fpHeight, err := bbnClient.QueryFpEarliestActiveDelBtcHeight(fpPkHex)
+		if err != nil {
+			return nil, err
+		}
+		if fpHeight != nil && (earliestHeight == nil || *fpHeight < *earliestHeight) {
+			earliestHeight = fpHeight
+		}
 	}
 
-	go func() {
-		wg.Wait()
-		close(errChan)
-	}()
-
-	if err := <-errChan; err != nil {
-		return nil, err
-	}
-
-	if val := activeDelHeight.Load(); val != nil {
-		return val.(*uint64), nil
-	}
-	return nil, nil
+	return earliestHeight, nil
 }
 
 func (bbnClient *Client) QueryFpEarliestActiveDelBtcHeight(fpPubkeyHex string) (*uint64, error) {
 	pagination := &sdkquerytypes.PageRequest{
 		Limit: 100,
 	}
+
 	// queries the BTCStaking module for all delegations of a finality provider
 	resp, err := bbnClient.QueryClient.FinalityProviderDelegations(fpPubkeyHex, pagination)
 	if err != nil {
 		return nil, err
 	}
+
 	// queries BtcConfirmationDepth, CovenantQuorum, and the latest BTC header
 	btccheckpointParams, err := bbnClient.QueryClient.BTCCheckpointParams()
 	if err != nil {
 		return nil, err
 	}
+
+	// get the BTC staking params
 	btcstakingParams, err := bbnClient.QueryClient.BTCStakingParams()
 	if err != nil {
 		return nil, err
 	}
-	kValue := btccheckpointParams.GetParams().BtcConfirmationDepth
-	covQuorum := btcstakingParams.GetParams().CovenantQuorum
+
+	// get the latest BTC header
 	btcHeader, err := bbnClient.QueryClient.BTCHeaderChainTip()
 	if err != nil {
 		return nil, err
 	}
+
+	kValue := btccheckpointParams.GetParams().BtcConfirmationDepth
+	covQuorum := btcstakingParams.GetParams().CovenantQuorum
+	latestBtcHeight := btcHeader.GetHeader().Height
+
 	var earliestBtcHeight *uint64
 	for {
 		// btcDels contains all the queried BTC delegations
 		for _, btcDels := range resp.BtcDelegatorDelegations {
 			for _, btcDel := range btcDels.Dels {
 				// check whether the delegation is active
-				latestBtcHeight := btcHeader.GetHeader().Height
 				confirmationHeight := btcDel.StartHeight + kValue
 				if isActiveBtcDelegation(btcDel, latestBtcHeight, confirmationHeight, covQuorum) {
 					if earliestBtcHeight == nil || confirmationHeight < *earliestBtcHeight {
