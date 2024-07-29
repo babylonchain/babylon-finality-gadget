@@ -39,7 +39,7 @@ type ISdkClient interface {
 
 	/* QueryBtcStakingActivatedTimestamp returns the timestamp when the BTC staking is activated
 	 *
-	 * returns ErrBtcStakingNotActivated if the BTC staking is not activated
+	 * returns math.MaxUint64, ErrBtcStakingNotActivated if the BTC staking is not activated
 	 */
 	QueryBtcStakingActivatedTimestamp() (uint64, error)
 }

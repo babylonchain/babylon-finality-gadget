@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/babylonchain/babylon-finality-gadget/sdk/cwclient"
@@ -161,7 +162,7 @@ func (sdkClient *SdkClient) QueryBtcStakingActivatedTimestamp() (uint64, error) 
 
 	// not activated yet
 	if earliestDelHeight == 0 {
-		return 0, ErrBtcStakingNotActivated
+		return math.MaxUint64, ErrBtcStakingNotActivated
 	}
 
 	// get the timestamp of the BTC height
