@@ -151,13 +151,13 @@ func (sdkClient *SdkClient) QueryBlockRangeBabylonFinalized(
 func (sdkClient *SdkClient) QueryBtcStakingActivatedTimestamp() (uint64, error) {
 	allFpPks, err := sdkClient.queryAllFpBtcPubKeys()
 	if err != nil {
-		return 0, err
+		return math.MaxUint64, err
 	}
 
 	// check whether the btc staking is actived
 	earliestDelHeight, err := sdkClient.bbnClient.QueryEarliestActiveDelBtcHeight(allFpPks)
 	if err != nil {
-		return 0, err
+		return math.MaxUint64, err
 	}
 
 	// not activated yet
@@ -168,7 +168,7 @@ func (sdkClient *SdkClient) QueryBtcStakingActivatedTimestamp() (uint64, error) 
 	// get the timestamp of the BTC height
 	btcBlockTimestamp, err := sdkClient.btcClient.GetBlockTimestampByHeight(earliestDelHeight)
 	if err != nil {
-		return 0, err
+		return math.MaxUint64, err
 	}
 	return btcBlockTimestamp, nil
 }
