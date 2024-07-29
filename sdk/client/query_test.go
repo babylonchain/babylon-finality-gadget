@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/babylonchain/babylon-finality-gadget/sdk/cwclient"
+	"github.com/babylonchain/babylon-finality-gadget/testutil"
 	"github.com/babylonchain/babylon-finality-gadget/testutil/mocks"
-	"github.com/babylonchain/babylon-finality-gadget/testutils"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -196,13 +196,13 @@ func TestQueryBlockRangeBabylonFinalized(t *testing.T) {
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	l2BlockTime := uint64(2)
-	blockA, blockAWithHashTrimmed := testutils.RandomL2Block(rng)
-	blockB, blockBWithHashTrimmed := testutils.GenL2Block(rng, &blockA, l2BlockTime, 1)
-	blockC, blockCWithHashTrimmed := testutils.GenL2Block(rng, &blockB, l2BlockTime, 1)
-	blockD, blockDWithHashTrimmed := testutils.GenL2Block(rng, &blockC, l2BlockTime, 300) // 10 minutes later
-	blockE, blockEWithHashTrimmed := testutils.GenL2Block(rng, &blockD, l2BlockTime, 1)
-	blockF, blockFWithHashTrimmed := testutils.GenL2Block(rng, &blockE, l2BlockTime, 300)
-	blockG, blockGWithHashTrimmed := testutils.GenL2Block(rng, &blockF, l2BlockTime, 1)
+	blockA, blockAWithHashTrimmed := testutil.RandomL2Block(rng)
+	blockB, blockBWithHashTrimmed := testutil.GenL2Block(rng, &blockA, l2BlockTime, 1)
+	blockC, blockCWithHashTrimmed := testutil.GenL2Block(rng, &blockB, l2BlockTime, 1)
+	blockD, blockDWithHashTrimmed := testutil.GenL2Block(rng, &blockC, l2BlockTime, 300) // 10 minutes later
+	blockE, blockEWithHashTrimmed := testutil.GenL2Block(rng, &blockD, l2BlockTime, 1)
+	blockF, blockFWithHashTrimmed := testutil.GenL2Block(rng, &blockE, l2BlockTime, 300)
+	blockG, blockGWithHashTrimmed := testutil.GenL2Block(rng, &blockF, l2BlockTime, 1)
 
 	testCases := []struct {
 		name         string
