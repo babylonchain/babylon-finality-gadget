@@ -37,5 +37,9 @@ type ISdkClient interface {
 	 */
 	QueryBlockRangeBabylonFinalized(queryBlocks []*cwclient.L2Block) (*uint64, error)
 
-	QueryEarliestDelHeight() (*uint64, error)
+	/* QueryBtcStakingActivatedTimestamp returns the timestamp when the BTC staking is activated
+	 *
+	 * returns ErrBtcStakingNotActivated if the BTC staking is not activated
+	 */
+	QueryBtcStakingActivatedTimestamp() (uint64, error)
 }

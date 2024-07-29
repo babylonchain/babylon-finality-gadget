@@ -39,14 +39,8 @@ func (sdkClient *SdkClient) QueryIsBlockBabylonFinalized(
 	// trim prefix 0x for the L2 block hash
 	queryParams.BlockHash = strings.TrimPrefix(queryParams.BlockHash, "0x")
 
-	// get the consumer chain id
-	consumerId, err := sdkClient.cwClient.QueryConsumerId()
-	if err != nil {
-		return false, err
-	}
-
-	// get all the FPs pubkey for the consumer chain
-	allFpPks, err := sdkClient.bbnClient.QueryAllFpBtcPubKeys(consumerId)
+	// get all FPs pubkey for the consumer chain
+	allFpPks, err := sdkClient.queryAllFpBtcPubKeys()
 	if err != nil {
 		return false, err
 	}
@@ -62,7 +56,7 @@ func (sdkClient *SdkClient) QueryIsBlockBabylonFinalized(
 	if err != nil {
 		return false, err
 	}
-	if earliestDelHeight == nil || btcblockHeight < *earliestDelHeight {
+	if earliestDelHeight == 0 || btcblockHeight < earliestDelHeight {
 		return false, ErrBtcStakingNotActivated
 	}
 
@@ -145,4 +139,50 @@ func (sdkClient *SdkClient) QueryBlockRangeBabylonFinalized(
 		}
 	}
 	return finalizedBlockHeight, nil
+}
+
+/* QueryBtcStakingActivatedTimestamp returns the timestamp when the BTC staking is activated
+ *
+ * - get all FPs pubkey for the consumer chain
+ * - get the BTC staking activation height
+ * - get the timestamp of the BTC staking activation height
+ */
+func (sdkClient *SdkClient) QueryBtcStakingActivatedTimestamp() (uint64, error) {
+	allFpPks, err := sdkClient.queryAllFpBtcPubKeys()
+	if err != nil {
+		return 0, err
+	}
+
+	// check whether the btc staking is actived
+	earliestDelHeight, err := sdkClient.bbnClient.QueryEarliestActiveDelBtcHeight(allFpPks)
+	if err != nil {
+		return 0, err
+	}
+
+	// not activated yet
+	if earliestDelHeight == 0 {
+		return 0, ErrBtcStakingNotActivated
+	}
+
+	// get the timestamp of the BTC height
+	btcBlockTimestamp, err := sdkClient.btcClient.GetBlockTimestampByHeight(earliestDelHeight)
+	if err != nil {
+		return 0, err
+	}
+	return btcBlockTimestamp, nil
+}
+
+func (sdkClient *SdkClient) queryAllFpBtcPubKeys() ([]string, error) {
+	// get the consumer chain id
+	consumerId, err := sdkClient.cwClient.QueryConsumerId()
+	if err != nil {
+		return nil, err
+	}
+
+	// get all the FPs pubkey for the consumer chain
+	allFpPks, err := sdkClient.bbnClient.QueryAllFpBtcPubKeys(consumerId)
+	if err != nil {
+		return nil, err
+	}
+	return allFpPks, nil
 }

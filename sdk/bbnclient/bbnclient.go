@@ -73,15 +73,16 @@ func (bbnClient *Client) QueryMultiFpPower(
 	return fpPowerMap, nil
 }
 
-func (bbnClient *Client) QueryEarliestActiveDelBtcHeight(fpPkHexList []string) (*uint64, error) {
-	var earliestHeight *uint64
+// QueryEarliestActiveDelBtcHeight returns the earliest active BTC staking height
+func (bbnClient *Client) QueryEarliestActiveDelBtcHeight(fpPkHexList []string) (uint64, error) {
+	var earliestHeight uint64
 
 	for _, fpPkHex := range fpPkHexList {
 		fpHeight, err := bbnClient.QueryFpEarliestActiveDelBtcHeight(fpPkHex)
 		if err != nil {
-			return nil, err
+			return 0, err
 		}
-		if fpHeight != nil && (earliestHeight == nil || *fpHeight < *earliestHeight) {
+		if fpHeight != 0 && (earliestHeight == 0 || fpHeight < earliestHeight) {
 			earliestHeight = fpHeight
 		}
 	}
@@ -89,7 +90,7 @@ func (bbnClient *Client) QueryEarliestActiveDelBtcHeight(fpPkHexList []string) (
 	return earliestHeight, nil
 }
 
-func (bbnClient *Client) QueryFpEarliestActiveDelBtcHeight(fpPubkeyHex string) (*uint64, error) {
+func (bbnClient *Client) QueryFpEarliestActiveDelBtcHeight(fpPubkeyHex string) (uint64, error) {
 	pagination := &sdkquerytypes.PageRequest{
 		Limit: 100,
 	}
@@ -97,32 +98,32 @@ func (bbnClient *Client) QueryFpEarliestActiveDelBtcHeight(fpPubkeyHex string) (
 	// queries the BTCStaking module for all delegations of a finality provider
 	resp, err := bbnClient.QueryClient.FinalityProviderDelegations(fpPubkeyHex, pagination)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	// queries BtcConfirmationDepth, CovenantQuorum, and the latest BTC header
 	btccheckpointParams, err := bbnClient.QueryClient.BTCCheckpointParams()
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	// get the BTC staking params
 	btcstakingParams, err := bbnClient.QueryClient.BTCStakingParams()
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	// get the latest BTC header
 	btcHeader, err := bbnClient.QueryClient.BTCHeaderChainTip()
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	kValue := btccheckpointParams.GetParams().BtcConfirmationDepth
 	covQuorum := btcstakingParams.GetParams().CovenantQuorum
 	latestBtcHeight := btcHeader.GetHeader().Height
 
-	var earliestBtcHeight *uint64
+	var earliestBtcHeight uint64
 	for {
 		// btcDels contains all the queried BTC delegations
 		for _, btcDels := range resp.BtcDelegatorDelegations {
@@ -130,8 +131,8 @@ func (bbnClient *Client) QueryFpEarliestActiveDelBtcHeight(fpPubkeyHex string) (
 				// check whether the delegation is active
 				confirmationHeight := btcDel.StartHeight + kValue
 				if isActiveBtcDelegation(btcDel, latestBtcHeight, confirmationHeight, covQuorum) {
-					if earliestBtcHeight == nil || confirmationHeight < *earliestBtcHeight {
-						earliestBtcHeight = &confirmationHeight
+					if earliestBtcHeight == 0 || confirmationHeight < earliestBtcHeight {
+						earliestBtcHeight = confirmationHeight
 					}
 				}
 			}
