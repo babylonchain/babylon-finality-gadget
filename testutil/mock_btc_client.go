@@ -1,4 +1,4 @@
-package testutils
+package testutil
 
 import (
 	"github.com/babylonchain/babylon-finality-gadget/sdk/btcclient"

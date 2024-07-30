@@ -39,4 +39,7 @@ jobs:
 workflows:
   CI:
     jobs:
-      - build_lint_test
+      # TODO:
+      # 1) enable this job after migrating to https://github.com/babylonlabs-io
+      # 2) fix the ssh secrets for accessing babylon-private
+      # - build_lint_test
