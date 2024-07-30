@@ -1,6 +1,8 @@
 package bbnclient
 
 import (
+	"math"
+
 	"github.com/babylonchain/babylon/client/query"
 	"github.com/babylonchain/babylon/x/btcstaking/types"
 	sdkquerytypes "github.com/cosmos/cosmos-sdk/types/query"
@@ -75,19 +77,19 @@ func (bbnClient *Client) QueryMultiFpPower(
 
 // QueryEarliestActiveDelBtcHeight returns the earliest active BTC staking height
 func (bbnClient *Client) QueryEarliestActiveDelBtcHeight(fpPkHexList []string) (uint64, error) {
-	var earliestHeight uint64
+	allFpEarliestDelBtcHeight := uint64(math.MaxUint64)
 
 	for _, fpPkHex := range fpPkHexList {
-		fpHeight, err := bbnClient.QueryFpEarliestActiveDelBtcHeight(fpPkHex)
+		fpEarliestDelBtcHeight, err := bbnClient.QueryFpEarliestActiveDelBtcHeight(fpPkHex)
 		if err != nil {
-			return 0, err
+			return math.MaxUint64, err
 		}
-		if fpHeight != 0 && (earliestHeight == 0 || fpHeight < earliestHeight) {
-			earliestHeight = fpHeight
+		if fpEarliestDelBtcHeight < allFpEarliestDelBtcHeight {
+			allFpEarliestDelBtcHeight = fpEarliestDelBtcHeight
 		}
 	}
 
-	return earliestHeight, nil
+	return allFpEarliestDelBtcHeight, nil
 }
 
 func (bbnClient *Client) QueryFpEarliestActiveDelBtcHeight(fpPubkeyHex string) (uint64, error) {
@@ -98,42 +100,39 @@ func (bbnClient *Client) QueryFpEarliestActiveDelBtcHeight(fpPubkeyHex string) (
 	// queries the BTCStaking module for all delegations of a finality provider
 	resp, err := bbnClient.QueryClient.FinalityProviderDelegations(fpPubkeyHex, pagination)
 	if err != nil {
-		return 0, err
+		return math.MaxUint64, err
 	}
 
 	// queries BtcConfirmationDepth, CovenantQuorum, and the latest BTC header
 	btccheckpointParams, err := bbnClient.QueryClient.BTCCheckpointParams()
 	if err != nil {
-		return 0, err
+		return math.MaxUint64, err
 	}
 
 	// get the BTC staking params
 	btcstakingParams, err := bbnClient.QueryClient.BTCStakingParams()
 	if err != nil {
-		return 0, err
+		return math.MaxUint64, err
 	}
 
 	// get the latest BTC header
 	btcHeader, err := bbnClient.QueryClient.BTCHeaderChainTip()
 	if err != nil {
-		return 0, err
+		return math.MaxUint64, err
 	}
 
 	kValue := btccheckpointParams.GetParams().BtcConfirmationDepth
 	covQuorum := btcstakingParams.GetParams().CovenantQuorum
 	latestBtcHeight := btcHeader.GetHeader().Height
 
-	var earliestBtcHeight uint64
+	earliestBtcHeight := uint64(math.MaxUint64)
 	for {
 		// btcDels contains all the queried BTC delegations
 		for _, btcDels := range resp.BtcDelegatorDelegations {
 			for _, btcDel := range btcDels.Dels {
-				// check whether the delegation is active
-				confirmationHeight := btcDel.StartHeight + kValue
-				if isActiveBtcDelegation(btcDel, latestBtcHeight, confirmationHeight, covQuorum) {
-					if earliestBtcHeight == 0 || confirmationHeight < earliestBtcHeight {
-						earliestBtcHeight = confirmationHeight
-					}
+				activationHeight := getDelFirstActiveHeight(btcDel, latestBtcHeight, kValue, covQuorum)
+				if activationHeight < earliestBtcHeight {
+					earliestBtcHeight = activationHeight
 				}
 			}
 		}
@@ -148,8 +147,15 @@ func (bbnClient *Client) QueryFpEarliestActiveDelBtcHeight(fpPubkeyHex string) (
 // The active delegation needs to satisfy:
 // 1) the staking tx is k-deep in Bitcoin, i.e., start_height + k
 // 2) it receives a quorum number of covenant committee signatures
-func isActiveBtcDelegation(btcDel *types.BTCDelegationResponse, latestBtcHeight, confirmationHeight uint64, covQuorum uint32) bool {
-	return latestBtcHeight >= confirmationHeight &&
-		btcDel.EndHeight > confirmationHeight &&
-		uint32(len(btcDel.CovenantSigs)) >= covQuorum
+//
+// return math.MaxUint64 if the delegation is not active
+//
+// Note: the delegation can be unbounded and that's totally fine and shouldn't affect when the chain was activated
+func getDelFirstActiveHeight(btcDel *types.BTCDelegationResponse, latestBtcHeight, kValue uint64, covQuorum uint32) uint64 {
+	activationHeight := btcDel.StartHeight + kValue
+	// not activated yet
+	if latestBtcHeight < activationHeight || uint32(len(btcDel.CovenantSigs)) < covQuorum {
+		return math.MaxUint64
+	}
+	return activationHeight
 }

@@ -57,7 +57,7 @@ func (sdkClient *SdkClient) QueryIsBlockBabylonFinalized(
 	if err != nil {
 		return false, err
 	}
-	if earliestDelHeight == 0 || btcblockHeight < earliestDelHeight {
+	if earliestDelHeight == math.MaxUint64 || btcblockHeight < earliestDelHeight {
 		return false, ErrBtcStakingNotActivated
 	}
 
@@ -161,7 +161,7 @@ func (sdkClient *SdkClient) QueryBtcStakingActivatedTimestamp() (uint64, error) 
 	}
 
 	// not activated yet
-	if earliestDelHeight == 0 {
+	if earliestDelHeight == math.MaxUint64 {
 		return math.MaxUint64, ErrBtcStakingNotActivated
 	}
 
