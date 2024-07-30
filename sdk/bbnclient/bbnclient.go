@@ -149,7 +149,7 @@ func (bbnClient *Client) QueryFpEarliestActiveDelBtcHeight(fpPubkeyHex string) (
 // 1) the staking tx is k-deep in Bitcoin, i.e., start_height + k
 // 2) it receives a quorum number of covenant committee signatures
 func isActiveBtcDelegation(btcDel *types.BTCDelegationResponse, latestBtcHeight, confirmationHeight uint64, covQuorum uint32) bool {
-	return latestBtcHeight > confirmationHeight &&
+	return latestBtcHeight >= confirmationHeight &&
 		btcDel.EndHeight > confirmationHeight &&
-		uint32(len(btcDel.CovenantSigs)) > covQuorum
+		uint32(len(btcDel.CovenantSigs)) >= covQuorum
 }
