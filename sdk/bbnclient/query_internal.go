@@ -16,6 +16,7 @@ func (bbnClient *Client) isDelegationActive(
 	if err != nil {
 		return false, err
 	}
+	kValue := btccheckpointParams.GetParams().BtcConfirmationDepth
 	wValue := btccheckpointParams.GetParams().CheckpointFinalizationTimeout
 	covQuorum := btcstakingParams.GetParams().CovenantQuorum
 	ud := btcDel.UndelegationResponse
@@ -24,7 +25,7 @@ func (bbnClient *Client) isDelegationActive(
 		return false, nil
 	}
 
-	if btcHeight < btcDel.StartHeight || btcHeight+wValue > btcDel.EndHeight {
+	if btcHeight < btcDel.StartHeight+kValue || btcHeight+wValue > btcDel.EndHeight {
 		return false, nil
 	}
 
