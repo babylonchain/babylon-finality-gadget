@@ -25,6 +25,17 @@ func (bbnClient *Client) isDelegationActive(
 		return false, nil
 	}
 
+	// k is not involved in the `GetStatus` logic as Babylon will accept a BTC delegation request
+	// only when staking tx is k-deep on BTC.
+	//
+	// But the msg handler performs both checks 1) ensure staking tx is k-deep, and 2) ensure the
+	// staking tx's timelock has at least w BTC blocks left.
+	// (https://github.com/babylonchain/babylon-private/blob/d64ddc97d1c8b9f695b814b7b1b92ce133f2547b/x/btcstaking/keeper/msg_server.go#L266-L278)
+	//
+	// So after the msg handler accepts BTC delegation the 1st check is no longer needed
+	// the k-value check is added per
+	//
+	// So in our case, we need to check both to ensure the delegation is active
 	if btcHeight < btcDel.StartHeight+kValue || btcHeight+wValue > btcDel.EndHeight {
 		return false, nil
 	}
