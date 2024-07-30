@@ -144,9 +144,19 @@ func (sdkClient *SdkClient) QueryBlockRangeBabylonFinalized(
 
 /* QueryBtcStakingActivatedTimestamp returns the timestamp when the BTC staking is activated
  *
- * - get all FPs pubkey for the consumer chain
- * - get the BTC staking activation height
- * - get the timestamp of the BTC staking activation height
+ * - We will check for k deep and covenant quorum to mark a delegation as active
+ * - So technically, activated time needs to be max of the following
+ *	 - timestamp of Babylon block that BTC delegation receives covenant quorum
+ *	 - timestamp of BTC block that BTC delegation's staking tx becomes k-deep
+ * - But we don't have a Babylon API to find the earliest Babylon block where BTC delegation gets covenant quorum.
+ *   and it's probably not a good idea to add this to Babylon, as this creates more coupling between Babylon and
+ *   consumer. So waiting for covenant quorum can be implemented in a clean way only with Babylon side support.
+ *   this will be considered as future work
+ * - For now, we will use the k-deep BTC block timestamp for the activation timestamp
+ * - The time diff issue is not burning. The time diff between pending and active only matters if FP equivocates
+ *   during that time period
+ *
+ * returns math.MaxUint64, ErrBtcStakingNotActivated if the BTC staking is not activated
  */
 func (sdkClient *SdkClient) QueryBtcStakingActivatedTimestamp() (uint64, error) {
 	allFpPks, err := sdkClient.queryAllFpBtcPubKeys()
