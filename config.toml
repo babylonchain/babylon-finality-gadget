@@ -1,0 +1,13 @@
+RpcListener = ""
+
+[Babylon]
+ContractAddr = ""
+ChainID = ""
+RPCAddr = ""
+
+[Bitcoin]
+RPCHost = ""
+
+[DB]
+DBPath = ""
+DBFileName = ""

@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/babylonchain/babylon-finality-gadget/proto";
+
+service FinalityGadget {
+  rpc QueryIsBlockBabylonFinalized(QueryIsBlockBabylonFinalizedRequest) returns (QueryIsBlockBabylonFinalizedResponse);
+
+  rpc QueryBlockRangeBabylonFinalized(QueryBlockRangeBabylonFinalizedRequest) returns (QueryBlockRangeBabylonFinalizedResponse);
+
+  rpc QueryEarliestDelHeight(QueryEarliestDelHeightRequest) returns (QueryEarliestDelHeightResponse);
+}
+
+message L2Block {
+    string block_hash = 1;
+    uint64 block_height = 2;
+    uint64 block_timestamp = 3;
+}
+
+message QueryIsBlockBabylonFinalizedRequest {
+    L2Block l2_block = 1;
+}
+
+message QueryIsBlockBabylonFinalizedResponse {
+    bool babylon_finalized = 1;
+}
+
+message QueryBlockRangeBabylonFinalizedRequest {
+    repeated L2Block l2_block = 1;
+}
+
+message QueryBlockRangeBabylonFinalizedResponse {
+    uint64 last_finalized_height = 1;
+}
+
+message QueryEarliestDelHeightRequest {
+}
+
+message QueryEarliestDelHeightResponse {
+    uint64 first_del_height = 1;
+}

@@ -12,3 +12,8 @@ test:
 
 lint:
 	golangci-lint run
+
+proto-gen:
+	./proto/scripts/protocgen.sh
+
+.PHONY: proto-gen
